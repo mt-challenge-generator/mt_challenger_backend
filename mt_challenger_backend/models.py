@@ -2,7 +2,7 @@ from django.db import models
 
 
 class Bucket_category(models.Model):
-    name = models.CharField(max_length=25, primary_key=True)
+    name = models.CharField(max_length=50, primary_key=True)
 
 class Bucket(models.Model):
     bucket_categoryid = models.ForeignKey(Bucket_Category, on delete=models.CASCADE)
@@ -11,5 +11,5 @@ class Bucket(models.Model):
 
 class Bucket_item(models.Model):
     bucket_id = models.ForeignKey(Bucket, on delete=models.CASCADE)
-    token = models.CharField(max_length=30)
+    token = models.CharField(max_length=50)
     
