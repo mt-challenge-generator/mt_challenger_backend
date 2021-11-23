@@ -5,7 +5,7 @@ from languages.fields import LanguageField
 ## Bucket models
 class BucketCategory(models.Model):
     name = models.CharField(max_length=25, primary_key=True)
-    source_language = LanguageField()
+    source_language = LanguageField(max_length=8)
 
 
 class Bucket(models.Model):
@@ -20,8 +20,8 @@ class BucketItem(models.Model):
 
 ## Language pairs & Test Sets
 class Langpair(models.Model):
-    source_language = LanguageField()
-    target_language = LanguageField()
+    source_language = LanguageField(max_length=8)
+    target_language = LanguageField(max_length=8)
 
 
 class Testset(models.Model):
@@ -45,7 +45,7 @@ class TestItem(models.Model):
     generation_time = models.DateField()
     source_sentence = models.CharField(max_length=1000)
 
-Rule(models.Model):
+class Rule(models.Model):
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
     rule_string = models.CharField(max_length=200)
     prefix = models.BooleanField()
