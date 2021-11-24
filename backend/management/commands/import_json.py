@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from django.core.management import BaseCommand
 import json
 
-from backend.models import TestItem, Category, Phenomenon, Language, Langpair
+from backend.models import TestItem, Category, Phenomenon, Language, Langpair, Testset
 
 
 class Command(BaseCommand):
@@ -38,9 +40,16 @@ class Command(BaseCommand):
                     name=incoming['phenomenon'],
                     category=category)
 
+                testset, _ = Testset.objects.get_or_create(name="Legacy")
+
                 testitem = TestItem()
                 testitem.phenomenon = phenomenon
                 testitem.source_sentence = incoming['source_sentence']
-                testitem.testitem_id = incoming['id']
+                testitem.id = incoming['id']
+                testitem.testset = testset
+                testitem.generation_time = datetime.now()
+
+                # TODO: positive and regular expressions are not imported
+                testitem.save()
 
 

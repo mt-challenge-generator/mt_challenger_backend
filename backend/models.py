@@ -34,6 +34,7 @@ class Langpair(models.Model):
 
 
 class Testset(models.Model):
+    name = models.CharField(max_length=40)
     description = models.CharField(max_length=250)
 
 
@@ -55,10 +56,9 @@ class Phenomenon(models.Model):
 
 
 class TestItem(models.Model):
-    testitem_id = BigAutoField(primary_key=True)
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
     phenomenon = models.ForeignKey(Phenomenon, on_delete=models.CASCADE)
-    generation_time = models.DateField()
+    generation_time = models.DateField(null=True)
     source_sentence = models.CharField(max_length=1000)
 
 
