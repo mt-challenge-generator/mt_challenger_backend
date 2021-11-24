@@ -1,11 +1,16 @@
 from django.db import models
-from languages.fields import LanguageField
+from django.db.models import BigAutoField
+
+
+class Language(models.Model):
+    code = models.CharField(max_length=8, primary_key=True)
+    name = models.CharField(max_length=30)
 
 
 # Bucket models
 class BucketCategory(models.Model):
-    name = models.CharField(max_length=25, primary_key=True)
-    source_language = LanguageField(max_length=8)
+    name = models.CharField(max_length=25)
+    source_language = models.ForeignKey(Language, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name_plural = "BucketCategories"
@@ -22,9 +27,10 @@ class BucketItem(models.Model):
 
 
 # Language pairs & Test Sets
+
 class Langpair(models.Model):
-    source_language = LanguageField(max_length=8)
-    target_language = LanguageField(max_length=8)
+    source_language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='source_language')
+    target_language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='target_language')
 
 
 class Testset(models.Model):
@@ -33,7 +39,7 @@ class Testset(models.Model):
 
 # from Categories to Rules
 class Category(models.Model):
-    name = models.CharField(max_length=30, primary_key=True)
+    name = models.CharField(max_length=30)
     langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
 
     class Meta:
@@ -49,6 +55,7 @@ class Phenomenon(models.Model):
 
 
 class TestItem(models.Model):
+    testitem_id = BigAutoField(primary_key=True)
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
     phenomenon = models.ForeignKey(Phenomenon, on_delete=models.CASCADE)
     generation_time = models.DateField()

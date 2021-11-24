@@ -33,3 +33,11 @@ Modify test item: PUT /testitems/{testitem_id}/:
     "testset": "http://127.0.0.1:8000/testsets/1/",
     "phenomenon": "http://127.0.0.1:8000/phenomena/1/"
   }
+
+# How to import an existing test suite
+1. Download legacy test suite in JSON format: https://cloud.dfki.de/owncloud/index.php/s/bpGgZ3powDCd6ia
+2. Run the following command 
+```
+  python manage.py import_json testsuite_en-de.json 
+```
+

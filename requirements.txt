@@ -1,3 +1,2 @@
-django==3.1.13
-django-language-field
+django
 djangorestframework

@@ -50,6 +50,7 @@ class TestItemSerializer(serializers.HyperlinkedModelSerializer):
 class PhenomenonSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Phenomenon
+        # TODO: serialize the category of the phenomenon
         fields = ['name']
 
 
