@@ -1,12 +1,14 @@
 from django.db import models
 from languages.fields import LanguageField
-# Create your models here.
 
 
-## Bucket models
+# Bucket models
 class BucketCategory(models.Model):
     name = models.CharField(max_length=25, primary_key=True)
     source_language = LanguageField(max_length=8)
+
+    class Meta:
+        verbose_name_plural = "BucketCategories"
 
 
 class Bucket(models.Model):
@@ -19,7 +21,7 @@ class BucketItem(models.Model):
     token = models.CharField(max_length=30)
 
 
-## Language pairs & Test Sets
+# Language pairs & Test Sets
 class Langpair(models.Model):
     source_language = LanguageField(max_length=8)
     target_language = LanguageField(max_length=8)
@@ -29,15 +31,21 @@ class Testset(models.Model):
     description = models.CharField(max_length=250)
 
 
-## from Categories to Rules
+# from Categories to Rules
 class Category(models.Model):
     name = models.CharField(max_length=30, primary_key=True)
     langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name_plural = "Categories"
 
 
 class Phenomenon(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
+
+    class Meta:
+        verbose_name_plural = "Phenomena"
 
 
 class TestItem(models.Model):
