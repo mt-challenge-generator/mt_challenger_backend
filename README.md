@@ -23,7 +23,7 @@ Add bucket item to bucket: POST http://127.0.0.1:8000/bucket-items/:
 Add new bucket: POST http://127.0.0.1:8000/buckets/:
   {
     "description": "dummy_bucket",
-    "bucket_category": "http://127.0.0.1:8000/bucket-categorys/1/"
+    "bucket_category": "http://127.0.0.1:8000/bucket-categories/1/"
 }
 
 Modify test item: PUT /testitems/{testitem_id}/:
@@ -31,5 +31,5 @@ Modify test item: PUT /testitems/{testitem_id}/:
     "generation_time": "2021-11-10",
     "source_sentence": "updated dummy source",
     "testset": "http://127.0.0.1:8000/testsets/1/",
-    "phenomenon": "http://127.0.0.1:8000/phenomenons/1/"
+    "phenomenon": "http://127.0.0.1:8000/phenomena/1/"
   }
