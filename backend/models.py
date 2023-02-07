@@ -55,14 +55,27 @@ class Phenomenon(models.Model):
         verbose_name_plural = "Phenomena"
 
 
-class TestItem(models.Model):
+class TestItem(models.Model): # old database 'source, phenomenon, cateogory columns from 'rules'
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
     phenomenon = models.ForeignKey(Phenomenon, on_delete=models.CASCADE)
     generation_time = models.DateField(null=True)
     source_sentence = models.CharField(max_length=1000)
 
 
-class Rule(models.Model):
+class Rule(models.Model): # old database 'positive/negative tokens/regex
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
     rule_string = models.CharField(max_length=200)
     prefix = models.BooleanField()
+
+class Translations(models.Model): # former sentences
+    pass
+
+class Report(models.Model):
+    pass
+
+class Template(models.Model):
+    pass
+
+class TemplatePositions(models.Model)
+    pass
+
