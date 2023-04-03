@@ -6,27 +6,6 @@ class Language(models.Model):
     name = models.CharField(max_length=30)
 
 
-# Bucket models
-class BucketCategory(models.Model):
-    name = models.CharField(max_length=25)
-    source_language = models.ForeignKey(Language, on_delete=models.CASCADE)
-
-    class Meta:
-        verbose_name_plural = "BucketCategories"
-
-
-class Bucket(models.Model):
-    bucket_category = models.ForeignKey(BucketCategory, on_delete=models.CASCADE)
-    description = models.CharField(max_length=100)
-
-
-class BucketItem(models.Model):
-    bucket = models.ForeignKey(Bucket, on_delete=models.CASCADE)
-    token = models.CharField(max_length=30)
-
-
-# Language pairs & Test Sets
-
 class Langpair(models.Model):
     source_language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='source_language')
     target_language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name='target_language')
@@ -37,7 +16,6 @@ class Testset(models.Model):
     description = models.CharField(max_length=250)
 
 
-# from Categories to Rules
 class Category(models.Model):  # values from rules.category
     name = models.CharField(max_length=30)
     langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
@@ -66,11 +44,7 @@ class TestItem(models.Model):  # former rules
     created_time = models.DateTimeField(auto_now_add=True)
 
 
-class GenerationRule(models.Model):
-    pass
-
-
-class EvaluationRule(models.Model):
+class Rule(models.Model):
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
 
     class Meta:
@@ -78,7 +52,7 @@ class EvaluationRule(models.Model):
 
 
 # the following 4 models are created by detailing the last 4 columns of rules
-class PositiveRule(EvaluationRule):  # former rules.positiveRegex
+class PositiveRule(Rule):  # former rules.positiveRegex
     regex = models.CharField(max_length=200)
 
 

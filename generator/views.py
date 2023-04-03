@@ -1,4 +1,4 @@
-from backend.models import Testset, TestItem, Phenomenon, Bucket, BucketCategory, BucketItem, Rule
+from backend.models import Testset, TestItem, Phenomenon, Bucket, BucketCategory, BucketItem, GenerationRule
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework.decorators import action
@@ -55,5 +55,5 @@ class BucketCategoryViewSet(viewsets.ModelViewSet):
 
 
 class RuleViewSet(viewsets.ModelViewSet):
-    queryset = Rule.objects.all()
+    queryset = GenerationRule.objects.all()
     serializer_class = RuleSerializer

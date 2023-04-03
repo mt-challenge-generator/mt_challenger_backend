@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from backend.models import Testset, TestItem, Phenomenon, Rule, Bucket, BucketCategory, BucketItem
+from backend.models import Testset, TestItem, Phenomenon, GenerationRule, Bucket, BucketCategory, BucketItem
 import json
 
 
@@ -62,5 +62,5 @@ class BucketCategorySerializer(serializers.HyperlinkedModelSerializer):
 
 class RuleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
-        model = Rule
+        model = GenerationRule
         fields = '__all__'
