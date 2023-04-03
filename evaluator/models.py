@@ -14,11 +14,11 @@ class Langpair(models.Model):
 class Testset(models.Model):
     name = models.CharField(max_length=40)
     description = models.CharField(max_length=250)
+    langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
 
 
 class Category(models.Model):  # values from rules.category
     name = models.CharField(max_length=30)
-    langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name_plural = "Categories"
@@ -51,20 +51,6 @@ class Rule(models.Model):
     positive = models.BooleanField(default=True)
 
 
-class Translation(models.Model):  # former sentences
-    id = models.BigAutoField(primary_key=True)
-    legacy_id = models.CharField(max_length=10, blank=True)  # former sentences.sentenceid
-
-    class Label(models.IntegerChoices):
-        PASS = 1
-        FAIL = 2
-        WARNING = 3
-
-    test_item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
-    sentence = models.CharField(max_length=500)  # former sentences.translation
-    label = models.IntegerField(choices=Label.choices, default=3)  # former sentences.pass
-
-
 class Template(models.Model):  # former template_meta
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(blank=True, null=True)  # former template_meta.id
@@ -85,7 +71,22 @@ class Report(models.Model):  # former reports
     created_time = models.DateTimeField(auto_now_add=True)  # former reports.time
 
 
-class TemplatePositions(models.Model):  # former templates
+class Translation(models.Model):  # former sentences
+    id = models.BigAutoField(primary_key=True)
+    legacy_id = models.CharField(max_length=10, blank=True)  # former sentences.sentenceid
+
+    class Label(models.IntegerChoices):
+        PASS = 1
+        FAIL = 2
+        WARNING = 3
+
+    test_item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
+    report = models.ForeignKey(Report, on_delete=models.CASCADE)
+    sentence = models.CharField(max_length=500)  # former sentences.translation
+    label = models.IntegerField(choices=Label.choices, default=3)  # former sentences.pass
+
+
+class TemplatePosition(models.Model):  # former templates
     template = models.ForeignKey(Template, on_delete=models.CASCADE)  # resolve from templates.id
     test_item = models.ForeignKey(TestItem, on_delete=models.CASCADE)  # resolve from templates.sentences
     pos = models.IntegerField()  # former templates.pos

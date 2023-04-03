@@ -36,3 +36,4 @@ media
 
 # File-based project format
 *.iws
+/doc/.history
