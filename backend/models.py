@@ -68,7 +68,8 @@ class Rule(models.Model): # old database 'positive/negative tokens/regex
     prefix = models.BooleanField()
 
 class Translations(models.Model): # former sentences
-    pass
+    translation = models.ForeignKey(TestItem, on_delete=models.CASCADE)
+
 
 class Report(models.Model):
     pass
@@ -76,6 +77,6 @@ class Report(models.Model):
 class Template(models.Model):
     pass
 
-class TemplatePositions(models.Model)
+class TemplatePositions(models.Model):
     pass
 
