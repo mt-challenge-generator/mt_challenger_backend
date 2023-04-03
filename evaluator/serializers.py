@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from evaluator.models import Testset, Rule, TestItem, Phenomenon
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):
@@ -32,5 +33,5 @@ class PhenomenonSerializer(serializers.HyperlinkedModelSerializer):
 
 class RuleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
-        model = GenerationRule
+        model = Rule
         fields = '__all__'

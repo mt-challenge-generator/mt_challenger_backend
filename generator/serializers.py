@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from models import Bucket, BucketCategory, BucketItem
+from generator.models import Bucket, BucketCategory, BucketItem
 
 
 class BucketItemSerializer(serializers.HyperlinkedModelSerializer):

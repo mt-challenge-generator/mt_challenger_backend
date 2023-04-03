@@ -46,25 +46,9 @@ class TestItem(models.Model):  # former rules
 
 class Rule(models.Model):
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
-
-    class Meta:
-        abstract = True
-
-
-class PositiveRule(Rule):  # former rules.positiveRegex
-    regex = models.CharField(max_length=200)
-
-
-class NegativeRule(models.Model):  # former rules.negativeRegex
-    regex = models.CharField(max_length=200)
-
-
-class PositiveToken(models.Model):  # former rules.positivetokens
-    sentence = models.CharField(max_length=200)
-
-
-class NegativeToken(models.Model):  # former rules.negativetokens
-    sentence = models.CharField(max_length=200)
+    string = models.CharField(max_length=200)
+    regex = models.BooleanField(default=True)
+    positive = models.BooleanField(default=True)
 
 
 class Translation(models.Model):  # former sentences
@@ -85,10 +69,10 @@ class Template(models.Model):  # former template_meta
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(blank=True, null=True)  # former template_meta.id
     description = models.CharField(max_length=50, blank=True)
-    select = models.DecimalField(decimal_places=2)  # former template_meta.met.select=
+    select = models.DecimalField(max_digits=10, decimal_places=2)  # former template_meta.met.select=
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
     phenomena = models.ManyToManyField(Phenomenon)  # resolve from template_meta.from
-    scramble_factor = models.DecimalField(decimal_places=1)  # former template_meta.meta.scramble_factor
+    scramble_factor = models.DecimalField(max_digits=5, decimal_places=1)  # former template_meta.meta.scramble_factor
     created_time = models.DateTimeField(auto_now_add=True)
 
 
