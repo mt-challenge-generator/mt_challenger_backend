@@ -51,7 +51,6 @@ class Rule(models.Model):
         abstract = True
 
 
-# the following 4 models are created by detailing the last 4 columns of rules
 class PositiveRule(Rule):  # former rules.positiveRegex
     regex = models.CharField(max_length=200)
 
@@ -111,3 +110,4 @@ class TemplatePositions(models.Model):  # former templates
 class Distractor(models.Model):  # former distractors
     text = models.CharField(max_length=500)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
+

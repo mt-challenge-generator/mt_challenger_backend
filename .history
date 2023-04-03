@@ -52,3 +52,6 @@
 2023-04-04.00-31-43 git rm -r backend
 2023-04-04.00-32-22 git commit -m "Major restructuring to separate generator from evaluator app"
 2023-04-04.00-32-35 python manage.py makemigrations
+2023-04-04.00-33-39 git commit -m "Major restructuring to separate generator from evaluator app"
+2023-04-04.00-33-47 git push
+2023-04-04.00-34-58 python manage.py makemigrations

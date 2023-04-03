@@ -1,12 +1,10 @@
-from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from backend.models import Testset, TestItem, Phenomenon
-from backend.serializers import TestSetSerializer, TestItemSerializer, PhenomenonSerializer
+from evaluator.models import Testset, TestItem, Phenomenon, Rule
+from evaluator.serializers import TestSetSerializer, TestItemSerializer, PhenomenonSerializer, RuleSerializer
 
 
-# Create your views here.
 class TestSetViewSet(viewsets.ModelViewSet):
     queryset = Testset.objects.all()
     serializer_class = TestSetSerializer
@@ -30,3 +28,8 @@ class PhenomenonViewSet(viewsets.ModelViewSet):
     queryset = Phenomenon.objects.all()
     serializer_class = PhenomenonSerializer
     # permission_classes = []#[permissions.IsAuthenticated]
+
+
+class RuleViewSet(viewsets.ModelViewSet):
+    queryset = Rule.objects.all()
+    serializer_class = RuleSerializer
