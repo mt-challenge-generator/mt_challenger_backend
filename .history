@@ -105,3 +105,5 @@
 2023-04-04.01-19-36 git commit 
 2023-04-04.01-19-38 git commit
 2023-04-04.01-19-43 git commit 
+2023-04-04.01-19-46 git add .history 
+2023-04-04.01-19-53 git commit -m "Removed useless history file"
