@@ -107,3 +107,10 @@
 2023-04-04.01-19-43 git commit 
 2023-04-04.01-19-46 git add .history 
 2023-04-04.01-19-53 git commit -m "Removed useless history file"
+2023-04-04.01-32-41 git add -u .
+2023-04-04.02-49-59 git add .gitignore 
+2023-04-04.02-50-06 git commit -m "updated gitignore"
+2023-04-04.02-50-09 git push
+2023-04-05.16-35-05 git push
+2023-04-05.17-23-41 git push
+2023-04-05.17-23-44 git push

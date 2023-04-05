@@ -54,10 +54,11 @@ class Rule(models.Model):
 class Template(models.Model):  # former template_meta
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(blank=True, null=True)  # former template_meta.id
-    description = models.CharField(max_length=50, blank=True)
+    name = models.CharField(max_length=50, blank=True)
     select = models.DecimalField(max_digits=10, decimal_places=2)  # former template_meta.met.select=
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
     phenomena = models.ManyToManyField(Phenomenon)  # resolve from template_meta.from
+    categories = models.ManyToManyField(Category)  # resolve from template_meta.from
     scramble_factor = models.DecimalField(max_digits=5, decimal_places=1)  # former template_meta.meta.scramble_factor
     created_time = models.DateTimeField(auto_now_add=True)
 
@@ -66,7 +67,7 @@ class Report(models.Model):  # former reports
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(blank=True, null=True)  # former reports.id
     template = models.ForeignKey(Template, on_delete=models.CASCADE)  # resolve from reports.templateid
-    client = models.CharField(max_length=50)  # former reports.client
+    engine = models.CharField(max_length=50)  # former reports.client
     comment = models.CharField(max_length=100)
     created_time = models.DateTimeField(auto_now_add=True)  # former reports.time
 
