@@ -1,15 +1,17 @@
 from django.urls import include, path
 from rest_framework import routers
-from backend import views
+import generator.views
+import evaluator.views
+
 
 router = routers.DefaultRouter()
-router.register(r'testsets', views.TestSetViewSet)
-router.register(r'testitems', views.TestItemViewSet)
-router.register(r'buckets', views.BucketViewSet)
-router.register(r'phenomena', views.PhenomenonViewSet)
-router.register(r'bucket-categories', views.BucketCategoryViewSet)
-router.register(r'bucket-items', views.BucketItemViewSet)
-router.register(r'rules', views.RuleViewSet)
+router.register(r'testsets', evaluator.views.TestSetViewSet)
+router.register(r'testitems', evaluator.views.TestItemViewSet)
+router.register(r'buckets', generator.views.BucketViewSet)
+router.register(r'phenomena', evaluator.views.PhenomenonViewSet)
+router.register(r'bucket-categories', generator.views.BucketCategoryViewSet)
+router.register(r'bucket-items', generator.views.BucketItemViewSet)
+router.register(r'rules', evaluator.views.RuleViewSet)
 
 
 # Wire up our API using automatic URL routing.

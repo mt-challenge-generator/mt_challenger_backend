@@ -1,0 +1,116 @@
+2022-11-29.14-31-08 git branch
+2022-11-29.14-31-12 git branch
+2023-01-31.14-30-38 ssh -lelav01 ssh-gate.sb.dfki.de
+2023-02-01.14-13-17 sudo apt install keepassxc 
+2023-02-07.14-13-44 sudo apt install keepassxc 
+2023-02-07.14-14-38 git branch
+2023-02-07.14-15-01 git checkout -b testsuite_relaunch
+2023-02-07.14-15-07 git checkout -b testsuite_relaunch 
+2023-02-07.14-15-10 git checkout testsuite_relaunch 
+2023-02-07.14-15-47 git push -u origin testsuite_relaunch 
+2023-02-07.14-16-03 git push
+2023-02-07.14-16-10 git add backend/models.py 
+2023-02-07.14-19-32 git commit -m "Stub model classes for testsuite modelsÄ
+2023-02-07.14-19-36 git commit -m "Stub model classes for testsuite models"
+2023-02-07.14-19-41 git push
+2023-02-17.11-15-23 git push
+2023-03-28.14-03-28 journalctl -r
+2023-04-03.22-07-49 which thunderbird 
+2023-04-03.22-08-23 git pull
+2023-04-03.22-08-44 git pull
+2023-04-03.22-08-51 git pull
+2023-04-03.22-09-01 git push
+2023-04-03.22-23-04 pip install -e /home/elav01/PycharmProjects/mt_challenger_backend 
+2023-04-03.22-51-20 git push
+2023-04-03.22-51-38 pip install -r requirements.txt 
+2023-04-03.23-40-40 git push
+2023-04-03.23-41-46 pip install pygraphviz 
+2023-04-03.23-43-51 pip install pygraphviz 
+2023-04-03.23-48-08 pip install django-extensions pygraphviz 
+2023-04-03.23-55-40 pip install pydot pyparsing==1.5.7 
+2023-04-03.23-56-31 pip install pydot pyparsing==1.5.7 
+2023-04-03.23-57-09 pip install pyparsing
+2023-04-03.23-57-35 pip install pyparsing
+2023-04-03.23-57-40 pip install pyparsing
+2023-04-03.23-57-50 python manage.py makemigrations
+2023-04-04.00-05-06 django create app
+2023-04-04.00-14-03 django create app generation 
+2023-04-04.00-14-11 python manage.py createapp generation 
+2023-04-04.00-16-40 python manage.py startapp generator
+2023-04-04.00-16-45 python manage.py startapp evaluator
+2023-04-04.00-17-04 python manage.py startapp evaluator
+2023-04-04.00-17-18 cp backend/*py generator/
+2023-04-04.00-17-36 mkdir generator/management/commands/ 
+2023-04-04.00-17-38 mkdir generator/management/commands/ -p
+2023-04-04.00-18-04 cp backend/management/commands/import_json.py generator/management/commands/ 
+2023-04-04.00-30-15 rm generator/*py
+2023-04-04.00-30-29 rm generator/management/commands/*
+2023-04-04.00-30-37 git mv backend/*py generator/
+2023-04-04.00-30-46 git mv backend/management/commands/import_json.py generator/management/commands/ 
+2023-04-04.00-31-19 git rm backend
+2023-04-04.00-31-23 git rm -r backend
+2023-04-04.00-31-43 git rm -r backend
+2023-04-04.00-32-22 git commit -m "Major restructuring to separate generator from evaluator app"
+2023-04-04.00-32-35 python manage.py makemigrations
+2023-04-04.00-33-39 git commit -m "Major restructuring to separate generator from evaluator app"
+2023-04-04.00-33-47 git push
+2023-04-04.00-34-58 python manage.py makemigrations
+2023-04-04.00-48-21 python manage.py makemigrations
+2023-04-04.00-48-22 python manage.py makemigrations
+2023-04-04.00-48-23 python manage.py makemigrations
+2023-04-04.00-49-00 python manage.py makemigrations
+2023-04-04.00-49-13 python manage.py makemigrations
+2023-04-04.00-49-49 python manage.py makemigrations
+2023-04-04.00-51-28 python manage.py makemigrations
+2023-04-04.00-52-06 python manage.py makemigrations
+2023-04-04.00-52-15 python manage.py migrate
+2023-04-04.00-53-23 python manage.py migrate
+2023-04-04.00-53-26 mkdir doc
+2023-04-04.00-53-44 python manage.py graph_models -a > doc/models_diagram.dot
+2023-04-04.00-53-48 python manage.py graph_models -a > doc/models_diagram.png
+2023-04-04.00-54-23 python manage.py graph_models -a -g -o doc/models_diagram.png
+2023-04-04.00-55-45 python manage.py graph_models evaluator -o doc/models_diagram_evaluator.png
+2023-04-04.00-56-17 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.00-58-44 python manage.py graph_models -a > doc/models_diagram.dot
+2023-04-04.00-58-47 python manage.py graph_models -a > doc/models_diagram.png
+2023-04-04.00-58-53 python manage.py graph_models -a -g -o doc/models_diagram.png
+2023-04-04.00-58-56 python manage.py graph_models evaluator -o doc/models_diagram_evaluator.png
+2023-04-04.00-58-59 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-02-11 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-02-12 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-02-13 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-02-14 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-02-35 python manage.py makemigrations
+2023-04-04.01-02-47 python manage.py makemigrations
+2023-04-04.01-02-49 python manage.py makemigrations
+2023-04-04.01-03-23 find . -path "*/migrations/*.py" -not -name "__init__.py" -delete 
+2023-04-04.01-03-29 find . -path "*/migrations/*.pyc"  -delete 
+2023-04-04.01-03-32 python manage.py makemigrations
+2023-04-04.01-03-39 python manage.py makemigrations
+2023-04-04.01-04-13 pip uninstall django
+2023-04-04.01-04-21 pip install django
+2023-04-04.01-04-24 python manage.py makemigrations
+2023-04-04.01-04-31 python manage.py migrate
+2023-04-04.01-08-00 python manage.py graph_models -a > doc/models_diagram.dot
+2023-04-04.01-08-03 python manage.py graph_models -a > doc/models_diagram.dot
+2023-04-04.01-08-11 python manage.py graph_models -a -g -o doc/models_diagram.png
+2023-04-04.01-08-12 python manage.py graph_models -a -g -o doc/models_diagram.png
+2023-04-04.01-08-13 python manage.py graph_models -a -g -o doc/models_diagram.png
+2023-04-04.01-08-17 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-08-18 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-08-19 python manage.py graph_models generator -o doc/models_diagram_generator.png
+2023-04-04.01-08-23 python manage.py graph_models evaluator -o doc/models_diagram_evaluator.png
+2023-04-04.01-18-19 git rm --cached .history 
+2023-04-04.01-18-23 ls .history 
+2023-04-04.01-19-36 git commit 
+2023-04-04.01-19-38 git commit
+2023-04-04.01-19-43 git commit 
+2023-04-04.01-19-46 git add .history 
+2023-04-04.01-19-53 git commit -m "Removed useless history file"
+2023-04-04.01-32-41 git add -u .
+2023-04-04.02-49-59 git add .gitignore 
+2023-04-04.02-50-06 git commit -m "updated gitignore"
+2023-04-04.02-50-09 git push
+2023-04-05.16-35-05 git push
+2023-04-05.17-23-41 git push
+2023-04-05.17-23-44 git push
