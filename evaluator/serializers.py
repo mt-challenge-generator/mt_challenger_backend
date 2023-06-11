@@ -1,15 +1,15 @@
 from rest_framework import serializers
-from evaluator.models import Testset, Rule, TestItem, Phenomenon
+from evaluator.models import Testset, Rule, TestItem, Phenomenon, User
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Testset
-        fields = '__all__'
+        fields = "__all__"
 
 
 class TestItemSerializer(serializers.HyperlinkedModelSerializer):
-    rule = serializers.SerializerMethodField('get_linked_rule')
+    rule = serializers.SerializerMethodField("get_linked_rule")
 
     def get_linked_rule(self, item):
         rule = Rule.objects.filter(pk=item.id)
@@ -21,17 +21,31 @@ class TestItemSerializer(serializers.HyperlinkedModelSerializer):
 
     class Meta:
         model = TestItem
-        fields = '__all__'
+        fields = "__all__"
 
 
 class PhenomenonSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Phenomenon
         # TODO: serialize the category of the phenomenon
-        fields = ['name']
+        fields = ["name"]
 
 
 class RuleSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Rule
-        fields = '__all__'
+        fields = "__all__"
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "affiliation",
+            "occupation",
+            "reason",
+        ]

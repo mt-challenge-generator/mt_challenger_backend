@@ -1,8 +1,15 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 
-from evaluator.models import Testset, TestItem, Phenomenon, Rule
-from evaluator.serializers import TestSetSerializer, TestItemSerializer, PhenomenonSerializer, RuleSerializer
+from evaluator.models import Testset, TestItem, Phenomenon, Rule, User
+from evaluator.serializers import (
+    TestSetSerializer,
+    TestItemSerializer,
+    PhenomenonSerializer,
+    RuleSerializer,
+    UserSerializer,
+)
+from rest_framework import status
 
 
 class TestSetViewSet(viewsets.ModelViewSet):
@@ -13,7 +20,9 @@ class TestSetViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, pk=None):
         queryset = TestItem.objects.filter(testset__id=pk)
-        test_items = [TestItemSerializer(x, context={'request': request}).data for x in queryset]
+        test_items = [
+            TestItemSerializer(x, context={"request": request}).data for x in queryset
+        ]
         return Response(test_items)
 
 
@@ -33,3 +42,8 @@ class PhenomenonViewSet(viewsets.ModelViewSet):
 class RuleViewSet(viewsets.ModelViewSet):
     queryset = Rule.objects.all()
     serializer_class = RuleSerializer
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
