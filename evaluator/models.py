@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
 
 
 class Language(models.Model):
@@ -118,15 +121,3 @@ class TemplatePosition(models.Model):  # former templates
 class Distractor(models.Model):  # former distractors
     text = models.CharField(max_length=500)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
-
-
-class User(models.Model):
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    email = models.EmailField()
-    affiliation = models.CharField(max_length=100)
-    occupation = models.CharField(max_length=100)
-    reason = models.TextField()
-
-    def __str__(self):
-        return self.email

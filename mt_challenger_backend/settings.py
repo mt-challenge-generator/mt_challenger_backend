@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,6 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = "accounts.CustomUser"
+
+# LOGIN_REDIRECT_URL = "/"
 
 # Application definition
 
@@ -42,6 +47,8 @@ INSTALLED_APPS = [
     "generator",
     "django_extensions",
     "corsheaders",
+    "accounts",
+    "knox",
 ]
 
 MIDDLEWARE = [
@@ -107,7 +114,21 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
-CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_ALL_ORIGINS = (
+    True  # Allow requests from any origin (not recommended for production)
+)
+CORS_ALLOW_CREDENTIALS = (
+    False  # Set this to True if your frontend uses cookies or authentication headers
+)
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]  # List of allowed HTTP methods
+CORS_ALLOW_HEADERS = ["Content-Type"]  # List of allowed headers in the request
 
 
 # Internationalization
@@ -133,3 +154,12 @@ STATIC_URL = "/static/"
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ("knox.auth.TokenAuthentication",),
+}
+
+REST_KNOX = {
+    "USER_SERIALIZER": "accounts.serializers.UserSerializer",
+    "TOKEN_TTL": timedelta(hours=48),
+}
