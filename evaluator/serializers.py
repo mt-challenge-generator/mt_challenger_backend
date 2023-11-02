@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from evaluator.models import Testset, Rule, TestItem, Phenomenon
+from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):
@@ -36,37 +36,13 @@ class RuleSerializer(serializers.HyperlinkedModelSerializer):
         model = Rule
         fields = "__all__"
 
-
-# class UserSerializer(serializers.ModelSerializer):
-#     password = serializers.CharField(write_only=True, max_length=100)
-#     confirm_password = serializers.CharField(write_only=True, max_length=100)
-
-#     class Meta:
-#         model = User
-#         fields = [
-#             "id",
-#             "username",
-#             "password",
-#             "confirm_password",
-#             "email",
-#             "affiliation",
-#             "occupation",
-#             "reason",
-#         ]
-
-#     def create(self, validated_data):
-#         password = validated_data.pop("password")
-#         confirm_password = validated_data.pop("confirm_password")
-
-#         if password != confirm_password:
-#             raise serializers.ValidationError("Passwords do not match.")
-
-#         user = User(**validated_data)
-#         user.set_password(password)
-#         user.save()
-#         return user
-
-
-# class LoginSerializer(serializers.Serializer):
-#     username = serializers.CharField(max_length=150)
-#     password = serializers.CharField(max_length=128, write_only=True)
+class LanguageSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Language
+        fields='__all__'
+        
+class LangpairSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Langpair
+        fields='__all__'
+        
