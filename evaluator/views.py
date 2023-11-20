@@ -43,12 +43,12 @@ class TestItemViewSet(viewsets.ModelViewSet):
 
             queryset = TestItem.objects.all()
 
-            # # Filter by language
-            # if source_language:
-            #      queryset = queryset.filter(testset__langpair__source_language__name=source_language)
+            # Filter by language
+            if source_language:
+                 queryset = queryset.filter(testset__langpair__source_language__code=source_language)
             
-            # if target_language:
-            #      queryset = queryset.filter(testset__langpair__target_language__name=target_language)
+            if target_language:
+                 queryset = queryset.filter(testset__langpair__target_language__code=target_language)
 
 
             # # Filter by categories
