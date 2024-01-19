@@ -1,13 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
 
 
 class Language(models.Model):
     code = models.CharField(max_length=8, primary_key=True)
     name = models.CharField(max_length=30)
-
+    
+    def __str__(self):
+        return self.name
 
 class Langpair(models.Model):
     source_language = models.ForeignKey(
@@ -16,25 +15,31 @@ class Langpair(models.Model):
     target_language = models.ForeignKey(
         Language, on_delete=models.CASCADE, related_name="target_language"
     )
-
-
+    # def __str__(self):
+    #     return self.source_language, self.target_language  
+     
 class Testset(models.Model):
     name = models.CharField(max_length=40)
     description = models.CharField(max_length=250)
     langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.name
 
 class Category(models.Model):  # values from rules.category
     name = models.CharField(max_length=30)
     class Meta:
         verbose_name_plural = "Categories"
-
+    def __str__(self):
+        return self.name
 
 class Phenomenon(models.Model):  # values from rules.barrier
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
     class Meta:
         verbose_name_plural = "Phenomena"
-
+    def __str__(self):
+        return self.name
 
 class TestItem(models.Model):  # former rules
     id = models.BigAutoField(primary_key=True)
@@ -49,13 +54,11 @@ class TestItem(models.Model):  # former rules
     comment = models.CharField(max_length=100)  # former rules.comment
     created_time = models.DateTimeField(auto_now_add=True)
 
-
 class Rule(models.Model):
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
     string = models.CharField(max_length=200)
     regex = models.BooleanField(default=True)
     positive = models.BooleanField(default=True)
-
 
 class Template(models.Model):  # former template_meta
     id = models.BigAutoField(primary_key=True)
@@ -65,8 +68,7 @@ class Template(models.Model):  # former template_meta
     name = models.CharField(max_length=50, blank=True)
     select = models.DecimalField(
         max_digits=10, decimal_places=2
-    )  # former template_meta.met.select=
-    testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
+    )  
     phenomena = models.ManyToManyField(Phenomenon)  # resolve from template_meta.from
     categories = models.ManyToManyField(Category)  # resolve from template_meta.from
     scramble_factor = models.DecimalField(
@@ -74,15 +76,15 @@ class Template(models.Model):  # former template_meta
     )  # former template_meta.meta.scramble_factor
     created_time = models.DateTimeField(auto_now_add=True)
 
-
 class Report(models.Model):  # former reports
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(blank=True, null=True)  # former reports.id
     template = models.ForeignKey(
         Template, on_delete=models.CASCADE
     )  # resolve from reports.templateid
-    engine = models.CharField(max_length=50)  # former reports.client
-    comment = models.CharField(max_length=100)
+    engine = models.CharField(max_length=50 ,blank=True, null=True)  
+    engine_type = models.CharField(max_length=50 ,blank=True, null=True)
+    comment = models.CharField(max_length=100 ,blank=True, null=True)
     created_time = models.DateTimeField(auto_now_add=True)  # former reports.time
 
 
@@ -104,7 +106,6 @@ class Translation(models.Model):  # former sentences
         choices=Label.choices, default=3
     )  # former sentences.pass
 
-
 class TemplatePosition(models.Model):  # former templates
     template = models.ForeignKey(
         Template, on_delete=models.CASCADE
@@ -113,7 +114,6 @@ class TemplatePosition(models.Model):  # former templates
         TestItem, on_delete=models.CASCADE
     )  # resolve from templates.sentences
     pos = models.IntegerField()  # former templates.pos
-
 
 class Distractor(models.Model):  # former distractors
     text = models.CharField(max_length=500)

@@ -1,12 +1,11 @@
 from rest_framework import serializers
-from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language
+from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Testset
         fields = "__all__"
-
 
 class TestItemSerializer(serializers.HyperlinkedModelSerializer):
     rule = serializers.SerializerMethodField("get_linked_rule")
@@ -22,7 +21,6 @@ class TestItemSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = TestItem
         fields = "__all__"
-
 
 class PhenomenonSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -45,4 +43,13 @@ class LangpairSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Langpair
         fields='__all__'
+
+class DistractorSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Distractor
+        fields='__all__' 
         
+class ReportSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Report
+        fields='__all__'

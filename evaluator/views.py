@@ -1,15 +1,19 @@
 from rest_framework import viewsets,status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair
+from django.http import JsonResponse
+import random 
+import json
+from django.db import transaction
+from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair, Template, TemplatePosition,Distractor,Report
 from evaluator.serializers import (
     TestSetSerializer,
     TestItemSerializer,
     PhenomenonSerializer,
     RuleSerializer,
     LanguageSerializer,
-    LangpairSerializer
+    LangpairSerializer,
+    ReportSerializer
 )
 
 
@@ -25,7 +29,6 @@ class TestSetViewSet(viewsets.ModelViewSet):
             TestItemSerializer(x, context={"request": request}).data for x in queryset
         ]
         return Response(test_items)
-
 
 class TestItemViewSet(viewsets.ModelViewSet):
     queryset = TestItem.objects.all()
@@ -54,31 +57,99 @@ class TestItemViewSet(viewsets.ModelViewSet):
             # # Filter by categories
             if categories:
                queryset = queryset.filter(phenomenon__category__name__in=categories)
-
+               
             # # Filter by phenomena
             if phenomena:
                 queryset = queryset.filter(phenomenon__name__in=phenomena)
-
+            
             # Get the desired fields
-            results = queryset.values_list('id', 'source_sentence', 'phenomenon__name', 'phenomenon__category__name')[:how_many]
-
-            # serializer = TestItemSerializer(results, many=True)
-            print(results)
-            return Response(results)
+            Result = queryset.values_list('id', 'source_sentence', 'phenomenon__name', 'phenomenon__category__name')[:how_many]
+            return Response(Result)  
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        
+    @action(detail=False, methods=['post'])
+    def download_text_file(self, request):
+        try:
+            data = request.data
+            content = data.get('content', [])
+            scrambling_factor = data.get('scramblingFactor', 1)
+
+            scrambling_factor = int(scrambling_factor)
+
+            if len(content) >= scrambling_factor:
+                rand_list = random.sample(range(1, len(content) * scrambling_factor + 1), len(content))
+                print(rand_list)
+            else:
+                print("Error: Not enough items for the given scrambling_factor.")
+
+            
+            # Create a new Template
+            new_template = Template.objects.create(
+                select=0.0,
+                scramble_factor=scrambling_factor
+            )
+
+            # Create TemplatePositions 
+            self.create_template_positions(content, rand_list, new_template)
+
+            # Generate the text file content
+            text_file_content = self.generate_text_file_content(new_template)
+            print("text_file_content" + text_file_content)
+
+            return Response({'template_id': new_template.id, 'text_file_content': text_file_content})
+        except Exception as e:
+            print(e)
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
+
+    def create_template_positions(self, filtered_items, rand_list, template):
+        try:
+            with transaction.atomic():
+                for i, item_data in enumerate(filtered_items):
+                    test_item_id = item_data.get('dataPointId', None)
+                    test_item = TestItem.objects.get(id=test_item_id)
+                    # Create TemplatePosition for each TestItem
+                    position = rand_list[i]
+                    template_position =   TemplatePosition.objects.create(
+                        template=template,
+                        test_item=test_item,
+                        pos=position
+                    )
+                    print(template_position)
+        except Exception as e:
+            print(f"Error creating template positions: {str(e)}")
+            
+    def generate_text_file_content(self ,template):
+            try:
+                template_positions = TemplatePosition.objects.filter(template=template).order_by('pos')
+                text_file_content = []
+                for position in range(1, template_positions.count() + 1):
+                    template_position = template_positions.filter(pos=position).first()
+                    if template_position and template_position.test_item:
+                        text_file_content.append(f" {template_position.test_item.source_sentence}")
+                    else:
+                        language = template_positions.first().test_item.testset.langpair.source_language
+                        random_distractor = self.get_random_distractor(language)
+                        text_file_content.append(f" {random_distractor.text}")
+                return ', '.join(text_file_content)
+
+            except Exception as e:
+                return None
+            
+    def get_random_distractor(self, language):
+        distractors = Distractor.objects.filter(language=language)
+        return random.choice(distractors)
+            
 class PhenomenonViewSet(viewsets.ModelViewSet):
     queryset = Phenomenon.objects.all()
     serializer_class = PhenomenonSerializer
     # permission_classes = []#[permissions.IsAuthenticated]
-
-
+    
 class RuleViewSet(viewsets.ModelViewSet):
     queryset = Rule.objects.all()
     serializer_class = RuleSerializer
-
+    
 class LanguageViewSet(viewsets.ModelViewSet):
     queryset = Language.objects.all()
     serializer_class = LanguageSerializer
@@ -86,3 +157,20 @@ class LanguageViewSet(viewsets.ModelViewSet):
 class LangpairViewSet(viewsets.ModelViewSet):
     queryset = Langpair.objects.all()
     serializer_class = LangpairSerializer
+    
+class ReportViewSet(viewsets.ModelViewSet):
+    queryset = Report.objects.all()
+    serializer_class = ReportSerializer
+
+    def create(self, request):
+        reports_data = request.data.get('reports', [])
+        
+        created_reports = []
+        with transaction.atomic():
+            for report_data in reports_data:
+                serializer = self.get_serializer(data=report_data)
+                serializer.is_valid(raise_exception=True)
+                self.perform_create(serializer)
+                created_reports.append(serializer.data)
+
+        return JsonResponse({'reports': created_reports}, status=201)
