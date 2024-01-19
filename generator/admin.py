@@ -15,7 +15,6 @@ from evaluator.models import TemplatePosition
 from evaluator.models import Translation
 
 
-
 admin.site.register(TestItem)
 admin.site.register(Testset)
 admin.site.register(Phenomenon)

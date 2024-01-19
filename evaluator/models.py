@@ -23,10 +23,8 @@ class Testset(models.Model):
     description = models.CharField(max_length=250)
     langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
 
-
 class Category(models.Model):  # values from rules.category
     name = models.CharField(max_length=30)
-
     class Meta:
         verbose_name_plural = "Categories"
 
@@ -34,7 +32,6 @@ class Category(models.Model):  # values from rules.category
 class Phenomenon(models.Model):  # values from rules.barrier
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     name = models.CharField(max_length=30)
-
     class Meta:
         verbose_name_plural = "Phenomena"
 
