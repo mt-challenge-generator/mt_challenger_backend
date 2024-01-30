@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report
+from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report,Translation
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):
@@ -52,4 +52,8 @@ class DistractorSerializer(serializers.HyperlinkedModelSerializer):
 class ReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
+        fields='__all__'
+class TranslationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model= Translation
         fields='__all__'
