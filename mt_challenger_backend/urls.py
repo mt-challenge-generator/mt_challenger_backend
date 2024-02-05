@@ -15,6 +15,8 @@ router.register(r"bucket-items", generator.views.BucketItemViewSet)
 router.register(r"rules", evaluator.views.RuleViewSet)
 router.register(r"langpair", evaluator.views.LangpairViewSet)
 router.register(r'reports', evaluator.views.ReportViewSet)
+router.register(r'reports', evaluator.views.ReportViewSet)
+router.register(r'translations', evaluator.views.TranslationViewSet)
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

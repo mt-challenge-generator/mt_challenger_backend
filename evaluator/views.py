@@ -5,7 +5,7 @@ from django.http import JsonResponse
 import random 
 import json
 from django.db import transaction
-from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair, Template, TemplatePosition,Distractor,Report
+from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair, Template, TemplatePosition,Distractor,Report, Translation
 from evaluator.serializers import (
     TestSetSerializer,
     TestItemSerializer,
@@ -13,7 +13,8 @@ from evaluator.serializers import (
     RuleSerializer,
     LanguageSerializer,
     LangpairSerializer,
-    ReportSerializer
+    ReportSerializer,
+    TranslationSerializer
 )
 
 
@@ -164,13 +165,53 @@ class ReportViewSet(viewsets.ModelViewSet):
 
     def create(self, request):
         reports_data = request.data.get('reports', [])
-        
+        print('Creating', reports_data)
         created_reports = []
         with transaction.atomic():
             for report_data in reports_data:
                 serializer = self.get_serializer(data=report_data)
                 serializer.is_valid(raise_exception=True)
                 self.perform_create(serializer)
+                created_report = serializer.instance
+                # self.create_translation(created_report.id)
                 created_reports.append(serializer.data)
 
         return JsonResponse({'reports': created_reports}, status=201)
+    
+    def create_translation(self, report_id):
+        try:
+            report = Report.objects.get(id=report_id)
+            template = report.template
+            template_positions = TemplatePosition.objects.filter(template=template)
+
+
+            for template_position in template_positions:
+                test_item = template_position.test_item
+
+                if test_item:
+                    # Retrieve the text from the corresponding line of the template
+                    text_line = test_item.source_sentence
+
+                    # Create a new Translation instance
+                    Translation.objects.create(
+                        test_item=test_item,
+                        report=report,
+                        sentence=text_line
+                    )
+
+            return True
+        except Exception as e:
+            print(f"Error creating translations: {str(e)}")
+            return False
+
+    def get_reports(request):
+        if request.method == 'GET':
+            reports = Report.objects.all()
+            serializer = ReportSerializer(reports, many=True)
+            return JsonResponse(serializer.data, safe=False)
+        else:
+            return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+class TranslationViewSet(viewsets.ModelViewSet):
+    queryset = Translation.objects.all()
+    serializer_class = TranslationSerializer
