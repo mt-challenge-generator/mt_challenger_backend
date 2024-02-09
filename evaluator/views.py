@@ -181,6 +181,7 @@ class ReportViewSet(viewsets.ModelViewSet):
                 comment=report_data['comment'],
                 engine_type=report_data['engine_type']
             )
+            report.save()
 
             content = report_data['content']
 
@@ -196,6 +197,7 @@ class ReportViewSet(viewsets.ModelViewSet):
                         test_item=test_item,
                         report=report,
                         sentence=translation_segment)
+                    translation.save()
 
                 except IndexError:
                     # it is a distractor
