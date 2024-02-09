@@ -1,11 +1,14 @@
-from rest_framework import viewsets,status
+import random
+import re
+
+from django.db import transaction
+from django.http import JsonResponse
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.http import JsonResponse
-import random 
-import json
-from django.db import transaction
-from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair, Template, TemplatePosition,Distractor,Report, Translation
+
+from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair, Template, TemplatePosition, \
+    Distractor, Report, Translation
 from evaluator.serializers import (
     TestSetSerializer,
     TestItemSerializer,
@@ -167,6 +170,36 @@ class ReportViewSet(viewsets.ModelViewSet):
         reports_data = request.data.get('reports', [])
         print('Creating', reports_data)
         created_reports = []
+        for report_data in reports_data:
+
+            template_id = int(report_data['template'])
+            template = Template.objects.get(id=template_id)
+
+            report = Report.objects.create(
+                template=template,
+                engine=report_data['engine_type'],
+                comment=report_data['comment'],
+                engine_type=report_data['engine_type']
+            )
+
+            content = report_data['content']
+
+            translation_segments = re.split('\r\n|\n',content.split)
+            for position, translation_segment in enumerate(translation_segments):
+                #self.create_translation(translation_segment, report)
+                try:
+                    template_position = TemplatePosition.objects.filter(pos=position)[0]
+                    test_item = template_position.test_item
+                    translation = Translation.objects.create(
+                        test_item=test_item,
+                        report=report,
+                        sentence=translation_segment)
+
+                except IndexError:
+                    # it is a distractor
+                    pass
+
+        # TODO @Sanan: is this needed, feel free to modify
         with transaction.atomic():
             for report_data in reports_data:
                 serializer = self.get_serializer(data=report_data)
@@ -177,11 +210,13 @@ class ReportViewSet(viewsets.ModelViewSet):
                 created_reports.append(serializer.data)
 
         return JsonResponse({'reports': created_reports}, status=201)
-    
-    def create_translation(self, report_id):
+
+
+
+    #TODO @Sanan: remove this functions
+    def create_translation(self, translation_segment, report):
+
         try:
-            report = Report.objects.get(id=report_id)
-            template = report.template
             template_positions = TemplatePosition.objects.filter(template=template)
 
 
