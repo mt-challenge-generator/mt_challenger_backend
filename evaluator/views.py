@@ -184,7 +184,9 @@ class ReportViewSet(viewsets.ModelViewSet):
 
             content = report_data['content']
 
+            # todo: make sure that sentences are split properly
             translation_segments = re.split('\r\n|\n',content.split)
+            # todo: make sure that enumerate starts counting from the right number (default: 0)
             for position, translation_segment in enumerate(translation_segments):
                 #self.create_translation(translation_segment, report)
                 try:
