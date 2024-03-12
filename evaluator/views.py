@@ -2,7 +2,7 @@ import random
 import re
 
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -96,7 +96,7 @@ class TestItemViewSet(viewsets.ModelViewSet):
 
             # Create TemplatePositions 
             self.create_template_positions(content, rand_list, new_template)
-
+    
             # Generate the text file content
             text_file_content = self.generate_text_file_content(new_template)
             print("text_file_content" + text_file_content)
@@ -125,10 +125,10 @@ class TestItemViewSet(viewsets.ModelViewSet):
             print(f"Error creating template positions: {str(e)}")
             
     def generate_text_file_content(self ,template):
-            try:
-                template_positions = TemplatePosition.objects.filter(template=template).order_by('pos')
+        #  try:
+                template_positions = TemplatePosition.objects.filter(template=template)
                 text_file_content = []
-                for position in range(1, template_positions.count() + 1):
+                for position in range(1, len(template_positions)* template.scramble_factor + 1):
                     template_position = template_positions.filter(pos=position).first()
                     if template_position and template_position.test_item:
                         text_file_content.append(f" {template_position.test_item.source_sentence}")
@@ -136,10 +136,10 @@ class TestItemViewSet(viewsets.ModelViewSet):
                         language = template_positions.first().test_item.testset.langpair.source_language
                         random_distractor = self.get_random_distractor(language)
                         text_file_content.append(f" {random_distractor.text}")
-                return ', '.join(text_file_content)
+                return '\n'.join(text_file_content)
 
-            except Exception as e:
-                return None
+            # except Exception as e:
+            #     return None
             
     def get_random_distractor(self, language):
         distractors = Distractor.objects.filter(language=language)
@@ -166,88 +166,73 @@ class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
 
+    @transaction.atomic
     def create(self, request):
         reports_data = request.data.get('reports', [])
-        print('Creating', reports_data)
-        created_reports = []
-        for report_data in reports_data:
-
-            template_id = int(report_data['template'])
-            template = Template.objects.get(id=template_id)
-
-            report = Report.objects.create(
-                template=template,
-                engine=report_data['engine_type'],
-                comment=report_data['comment'],
-                engine_type=report_data['engine_type']
-            )
-            report.save()
-
-            content = report_data['content']
-
-            # todo: make sure that sentences are split properly
-            translation_segments = re.split('\r\n|\n',content.split)
-            # todo: make sure that enumerate starts counting from the right number (default: 0)
-            for position, translation_segment in enumerate(translation_segments):
-                #self.create_translation(translation_segment, report)
-                try:
-                    template_position = TemplatePosition.objects.filter(pos=position)[0]
-                    test_item = template_position.test_item
-                    translation = Translation.objects.create(
-                        test_item=test_item,
-                        report=report,
-                        sentence=translation_segment)
-                    translation.save()
-
-                except IndexError:
-                    # it is a distractor
-                    pass
-
-        # TODO @Sanan: is this needed, feel free to modify
-        with transaction.atomic():
-            for report_data in reports_data:
-                serializer = self.get_serializer(data=report_data)
-                serializer.is_valid(raise_exception=True)
-                self.perform_create(serializer)
-                created_report = serializer.instance
-                # self.create_translation(created_report.id)
-                created_reports.append(serializer.data)
-
-        return JsonResponse({'reports': created_reports}, status=201)
-
-
-
-    #TODO @Sanan: remove this functions
-    def create_translation(self, translation_segment, report):
-
         try:
-            template_positions = TemplatePosition.objects.filter(template=template)
+            for report_data in reports_data:
+                template_id = int(report_data['template'])
+                template = Template.objects.get(id=template_id)
 
+                # Create the Report instance
+                report = Report.objects.create(
+                    template=template,
+                    engine=report_data['engine'],
+                    engine_type=report_data['engine_type'],
+                    comment=report_data['comment']
+                )
 
-            for template_position in template_positions:
-                test_item = template_position.test_item
+                content = report_data['content']
+                translation_segments =  re.split(r'\r\n|\n|\r', content)
+                print("Content" , translation_segments)
 
-                if test_item:
-                    # Retrieve the text from the corresponding line of the template
-                    text_line = test_item.source_sentence
-
-                    # Create a new Translation instance
-                    Translation.objects.create(
-                        test_item=test_item,
-                        report=report,
-                        sentence=text_line
-                    )
-
-            return True
+                for position, translation_segment in enumerate(translation_segments):
+                    print("Position" , position)
+                    print("Translation" , translation_segment)
+                    template_position  = TemplatePosition.objects.filter(pos=position).first()
+                    if template_position is None:
+                        pass
+                    else:
+                        test_item = template_position.test_item
+                        translation = Translation.objects.create(
+                            test_item=test_item,
+                            report=report,
+                            sentence=translation_segment
+                        )
+                        translation.save()
+                
+            return Response({'message': 'Reports and Translation Objects have been created'}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            print(f"Error creating translations: {str(e)}")
-            return False
-
-    def get_reports(request):
+            print(e)
+            return HttpResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                        
+        
+    def get_reports(self, request, *args, **kwargs):
         if request.method == 'GET':
-            reports = Report.objects.all()
-            serializer = ReportSerializer(reports, many=True)
-            return JsonResponse(serializer.data, safe=False)
+            queryset = self.get_queryset()
+            serializer = self.get_serializer(queryset, many=True)
+            
+            reports_with_translations = []  # Initialize a list to hold reports with their translations
+            
+            for report_data in serializer.data:    # Iterate through each serialized report data
+                report_id = report_data['id']
+                
+                # Retrieve translations related to the current report
+                translations = Translation.objects.filter(report_id=report_id)
+                
+                # Serialize the translations
+                translations_data = TranslationSerializer(translations, many=True).data
+                
+                # Add the serialized translations to the report data
+                report_data['translations'] = translations_data
+                
+                # Append the updated report data to the list
+                reports_with_translations.append(report_data)
+            
+            # Return the response with reports along with their translations
+            print(reports_with_translations)
+            # return Response(reports_with_translations)
+
         else:
             return JsonResponse({'error': 'Method not allowed'}, status=405)
 
