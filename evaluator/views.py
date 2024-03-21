@@ -1,6 +1,5 @@
 import random
 import re
-
 from django.db import transaction
 from django.http import JsonResponse,HttpResponse
 from rest_framework import viewsets, status
@@ -183,30 +182,26 @@ class ReportViewSet(viewsets.ModelViewSet):
                 )
 
                 content = report_data['content']
-                translation_segments =  re.split(r'\r\n|\n|\r', content)
-                print("Content" , translation_segments)
+                translation_segments = re.split(r'\r\n|\n|\r', content)
 
-                for position, translation_segment in enumerate(translation_segments):
-                    print("Position" , position)
-                    print("Translation" , translation_segment)
-                    template_position  = TemplatePosition.objects.filter(pos=position).first()
-                    if template_position is None:
-                        pass
-                    else:
+                # Get template positions for the current template
+                template_positions = TemplatePosition.objects.filter(template=template)
+
+                for position, translation_segment in enumerate(translation_segments, start=1):
+                    template_position = template_positions.filter(pos=position).first()
+                    if template_position is not None:
                         test_item = template_position.test_item
                         translation = Translation.objects.create(
                             test_item=test_item,
                             report=report,
                             sentence=translation_segment
                         )
-                        translation.save()
-                
+
             return Response({'message': 'Reports and Translation Objects have been created'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(e)
             return HttpResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                        
-        
+
     def get_reports(self, request, *args, **kwargs):
         if request.method == 'GET':
             queryset = self.get_queryset()
@@ -230,12 +225,11 @@ class ReportViewSet(viewsets.ModelViewSet):
                 reports_with_translations.append(report_data)
             
             # Return the response with reports along with their translations
-            print(reports_with_translations)
-            # return Response(reports_with_translations)
+            return Response(reports_with_translations)
 
         else:
             return JsonResponse({'error': 'Method not allowed'}, status=405)
-
+        
 class TranslationViewSet(viewsets.ModelViewSet):
     queryset = Translation.objects.all()
     serializer_class = TranslationSerializer
