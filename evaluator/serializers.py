@@ -51,11 +51,22 @@ class DistractorSerializer(serializers.HyperlinkedModelSerializer):
         fields='__all__' 
         
 class ReportSerializer(serializers.ModelSerializer):
+    language_direction = serializers.SerializerMethodField()
+
+    def get_language_direction(self, obj):
+        try:
+            source_language = obj.template.testset.langpair.source_language.code.upper()
+            target_language = obj.template.testset.langpair.target_language.code.upper()
+            return f"{source_language} -> {target_language}"
+        except AttributeError:
+            return None
+        
     class Meta:
         model = Report
         fields='__all__'
+        
 class TranslationSerializer(serializers.ModelSerializer):
     class Meta:
         model= Translation
         fields='__all__'
-        fields = '__all__'
+       

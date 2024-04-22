@@ -15,8 +15,8 @@ class Langpair(models.Model):
     target_language = models.ForeignKey(
         Language, on_delete=models.CASCADE, related_name="target_language"
     )
-    # def __str__(self):
-    #     return self.source_language, self.target_language  
+    def __str__(self):
+        return f"{self.source_language} to {self.target_language}"  
      
 class Testset(models.Model):
     name = models.CharField(max_length=40)
@@ -43,9 +43,9 @@ class Phenomenon(models.Model):  # values from rules.barrier
 
 class TestItem(models.Model):  # former rules
     id = models.BigAutoField(primary_key=True)
-    legacy_id = models.CharField(max_length=10)  # former rules.ID
-    legacy_testpoint = models.SmallIntegerField()  # former rules.testPoint
-    legacy_version = models.SmallIntegerField()  # former rules.version
+    legacy_id = models.CharField(max_length=10, blank=True, null=True )  # former rules.ID
+    legacy_testpoint = models.SmallIntegerField(blank=True, null=True)  # former rules.testPoint
+    legacy_version = models.SmallIntegerField(blank=True, null=True)  # former rules.version
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
     phenomenon = models.ForeignKey(
         Phenomenon, on_delete=models.CASCADE
@@ -53,18 +53,27 @@ class TestItem(models.Model):  # former rules
     source_sentence = models.CharField(max_length=500)  # former rules.source
     comment = models.CharField(max_length=100)  # former rules.comment
     created_time = models.DateTimeField(auto_now_add=True)
-
+    
+    def __str__(self):
+        return self.source_sentence
+    
 class Rule(models.Model):
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
     string = models.CharField(max_length=200)
     regex = models.BooleanField(default=True)
     positive = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.string
+    
 
 class Template(models.Model):  # former template_meta
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(
         blank=True, null=True
     )  # former template_meta.id
+    testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
+    
     name = models.CharField(max_length=50, blank=True)
     select = models.DecimalField(
         max_digits=10, decimal_places=2
@@ -75,6 +84,9 @@ class Template(models.Model):  # former template_meta
         max_digits=5, decimal_places=1
     )  # former template_meta.meta.scramble_factor
     created_time = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Template ID: {self.id}"
 
 class Report(models.Model):  # former reports
     id = models.BigAutoField(primary_key=True)
@@ -87,6 +99,8 @@ class Report(models.Model):  # former reports
     comment = models.CharField(max_length=100 ,blank=True, null=True)
     created_time = models.DateTimeField(auto_now_add=True)  # former reports.time
 
+    def __str__(self):
+        return f"Report {self.id}"
 
 class Translation(models.Model):  # former sentences
     id = models.BigAutoField(primary_key=True)
@@ -106,6 +120,9 @@ class Translation(models.Model):  # former sentences
         choices=Label.choices, default=3
     )  # former sentences.pass
 
+    def __str__(self):
+        return f"Translation for {self.test_item}"
+    
 class TemplatePosition(models.Model):  # former templates
     template = models.ForeignKey(
         Template, on_delete=models.CASCADE
@@ -115,6 +132,12 @@ class TemplatePosition(models.Model):  # former templates
     )  # resolve from templates.sentences
     pos = models.IntegerField()  # former templates.pos
 
+    def __str__(self):
+        return f"Position {self.pos} in template {self.template_id}"
+    
 class Distractor(models.Model):  # former distractors
     text = models.CharField(max_length=500)
     language = models.ForeignKey(Language, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return self.text

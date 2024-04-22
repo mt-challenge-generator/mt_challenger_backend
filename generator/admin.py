@@ -28,3 +28,4 @@ admin.site.register(Rule)
 admin.site.register(Report)
 admin.site.register(TemplatePosition)
 admin.site.register(Translation)
+

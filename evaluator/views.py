@@ -24,8 +24,6 @@ class TestSetViewSet(viewsets.ModelViewSet):
     queryset = Testset.objects.all()
     serializer_class = TestSetSerializer
 
-    # permission_classes = []#[permissions.IsAuthenticated]
-
     def retrieve(self, request, pk=None):
         queryset = TestItem.objects.filter(testset__id=pk)
         test_items = [
@@ -36,11 +34,13 @@ class TestSetViewSet(viewsets.ModelViewSet):
 class TestItemViewSet(viewsets.ModelViewSet):
     queryset = TestItem.objects.all()
     serializer_class = TestItemSerializer
-
+    source_language = None
+    target_language = None  
     @action(detail=False, methods=['post'])
     def filter_test_items(self, request):
         try:
             data = request.data
+            global source_language, target_language
             source_language = data.get('source_language', None)
             target_language = data.get('target_language', None)
             categories = data.get('categories', [])
@@ -50,13 +50,24 @@ class TestItemViewSet(viewsets.ModelViewSet):
             queryset = TestItem.objects.all()
 
             # Filter by language
-            if source_language:
-                 queryset = queryset.filter(testset__langpair__source_language__code=source_language)
+            # if source_language:
+            #      queryset = queryset.filter(testset__langpair__source_language__code=source_language)
             
+            # if target_language:
+            #      queryset = queryset.filter(testset__langpair__target_language__code=target_language)
+            
+            langpair_query = Langpair.objects.all()
+            if source_language:
+                langpair_query = langpair_query.filter(source_language__code=source_language)
             if target_language:
-                 queryset = queryset.filter(testset__langpair__target_language__code=target_language)
-
-
+                langpair_query = langpair_query.filter(target_language__code=target_language)
+            
+            
+            testset_query = Testset.objects.filter(langpair__in=langpair_query)
+            
+        
+            queryset = TestItem.objects.filter(testset__in=testset_query)
+        
             # # Filter by categories
             if categories:
                queryset = queryset.filter(phenomenon__category__name__in=categories)
@@ -86,11 +97,20 @@ class TestItemViewSet(viewsets.ModelViewSet):
             else:
                 print("Error: Not enough items for the given scrambling_factor.")
 
+            global source_language, target_language  # Access as global
+            # Retrieve the Testset object based on source and target languages
+            langpair_query = Langpair.objects.all()
+            if source_language:
+                langpair_query = langpair_query.filter(source_language__code=source_language)
+            if target_language:
+                langpair_query = langpair_query.filter(target_language__code=target_language)
             
+            testset = Testset.objects.filter(langpair__in=langpair_query).first() 
             # Create a new Template
             new_template = Template.objects.create(
                 select=0.0,
-                scramble_factor=scrambling_factor
+                scramble_factor=scrambling_factor,
+                testset = testset
             )
 
             # Create TemplatePositions 
@@ -101,6 +121,7 @@ class TestItemViewSet(viewsets.ModelViewSet):
             print("text_file_content" + text_file_content)
 
             return Response({'template_id': new_template.id, 'text_file_content': text_file_content})
+            return Response("text_file_content")
         except Exception as e:
             print(e)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -202,34 +223,7 @@ class ReportViewSet(viewsets.ModelViewSet):
             print(e)
             return HttpResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    def get_reports(self, request, *args, **kwargs):
-        if request.method == 'GET':
-            queryset = self.get_queryset()
-            serializer = self.get_serializer(queryset, many=True)
-            
-            reports_with_translations = []  # Initialize a list to hold reports with their translations
-            
-            for report_data in serializer.data:    # Iterate through each serialized report data
-                report_id = report_data['id']
-                
-                # Retrieve translations related to the current report
-                translations = Translation.objects.filter(report_id=report_id)
-                
-                # Serialize the translations
-                translations_data = TranslationSerializer(translations, many=True).data
-                
-                # Add the serialized translations to the report data
-                report_data['translations'] = translations_data
-                
-                # Append the updated report data to the list
-                reports_with_translations.append(report_data)
-            
-            # Return the response with reports along with their translations
-            return Response(reports_with_translations)
-
-        else:
-            return JsonResponse({'error': 'Method not allowed'}, status=405)
-        
+    
 class TranslationViewSet(viewsets.ModelViewSet):
     queryset = Translation.objects.all()
     serializer_class = TranslationSerializer
