@@ -1,17 +1,21 @@
 import random
 import re
 from django.db import transaction
-from django.http import JsonResponse,HttpResponse
+from django.http import HttpResponse
+from rest_framework.generics import ListAPIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from evaluator.models import Testset, TestItem, Phenomenon, Rule, Language, Langpair, Template, TemplatePosition, \
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+import logging 
+from evaluator.models import Testset, TestItem, Category,Phenomenon, Rule, Language, Langpair, Template, TemplatePosition, \
     Distractor, Report, Translation
 from evaluator.serializers import (
     TestSetSerializer,
     TestItemSerializer,
     PhenomenonSerializer,
+    CategorySerializer,
     RuleSerializer,
     LanguageSerializer,
     LangpairSerializer,
@@ -20,6 +24,10 @@ from evaluator.serializers import (
 )
 
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    
 class TestSetViewSet(viewsets.ModelViewSet):
     queryset = Testset.objects.all()
     serializer_class = TestSetSerializer
@@ -49,12 +57,7 @@ class TestItemViewSet(viewsets.ModelViewSet):
 
             queryset = TestItem.objects.all()
 
-            # Filter by language
-            # if source_language:
-            #      queryset = queryset.filter(testset__langpair__source_language__code=source_language)
-            
-            # if target_language:
-            #      queryset = queryset.filter(testset__langpair__target_language__code=target_language)
+         
             
             langpair_query = Langpair.objects.all()
             if source_language:
@@ -222,8 +225,123 @@ class ReportViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(e)
             return HttpResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
     
 class TranslationViewSet(viewsets.ModelViewSet):
     queryset = Translation.objects.all()
     serializer_class = TranslationSerializer
+    
+class ReportTranslationsListView(ListAPIView):
+    serializer_class = TranslationSerializer
+
+    def get_queryset(self):
+        # Get the report ID from the URL parameters
+        report_id = self.kwargs['report_id']
+
+        # Filter translations by the specified report ID
+        queryset = Translation.objects.filter(report_id=report_id)
+
+        return queryset
+    
+class RulesByTranslationId(APIView):
+    def get(self, request, translation_id):
+        translation = get_object_or_404(Translation, pk=translation_id)
+        test_item = translation.test_item
+        rules = Rule.objects.filter(item=test_item)
+        rules_data = RuleSerializer(rules, many=True).data  
+        response_data = {
+            'rules': rules_data,
+            'source_sentence': test_item.source_sentence,
+            'target_sentence': translation.sentence,
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+logger = logging.getLogger(__name__)
+
+class UpdateRulesView(APIView):
+    def post(self, request):
+        data = request.data
+        translation_id = data.get('translation_id')
+        positive_regexes = data.get('positive_regexes', [])
+        negative_regexes = data.get('negative_regexes', [])
+        positive_tokens = data.get('positive_tokens', [])
+        negative_tokens = data.get('negative_tokens', [])
+
+        logger.info(f"Received data: {data}")
+
+        # Get the Translation and associated TestItem
+        translation = get_object_or_404(Translation, pk=translation_id)
+        test_item = translation.test_item
+
+        # Collect all existing rule IDs from the request data
+        existing_rule_ids = set()
+
+        # Process positive regexes
+        for regex in positive_regexes:
+            if 'id' in regex and regex['id']:  # Update existing rule
+                rule = get_object_or_404(Rule, pk=regex['id'], item=test_item)
+                rule.string = regex['string']
+                rule.save()
+                existing_rule_ids.add(rule.id)
+                logger.info(f"Updated rule: {rule.id}")
+            else:  # Create new rule
+                new_rule = Rule.objects.create(item=test_item, string=regex['string'], regex=True, positive=True)
+                existing_rule_ids.add(new_rule.id)
+                logger.info(f"Created new rule: {new_rule.id}")
+
+        # Process negative regexes
+        for regex in negative_regexes:
+            if 'id' in regex and regex['id']:  # Update existing rule
+                rule = get_object_or_404(Rule, pk=regex['id'], item=test_item)
+                rule.string = regex['string']
+                rule.save()
+                existing_rule_ids.add(rule.id)
+                logger.info(f"Updated rule: {rule.id}")
+            else:  # Create new rule
+                new_rule = Rule.objects.create(item=test_item, string=regex['string'], regex=True, positive=False)
+                existing_rule_ids.add(new_rule.id)
+                logger.info(f"Created new rule: {new_rule.id}")
+
+        # Process positive tokens
+        for token in positive_tokens:
+            if 'id' in token and token['id']:  # Update existing rule
+                rule = get_object_or_404(Rule, pk=token['id'], item=test_item)
+                rule.string = token['string']
+                rule.save()
+                existing_rule_ids.add(rule.id)
+                logger.info(f"Updated rule: {rule.id}")
+            else:  # Create new rule
+                new_rule = Rule.objects.create(item=test_item, string=token['string'], regex=False, positive=True)
+                existing_rule_ids.add(new_rule.id)
+                logger.info(f"Created new rule: {new_rule.id}")
+
+        # Process negative tokens
+        for token in negative_tokens:
+            if 'id' in token and token['id']:  # Update existing rule
+                rule = get_object_or_404(Rule, pk=token['id'], item=test_item)
+                rule.string = token['string']
+                rule.save()
+                existing_rule_ids.add(rule.id)
+                logger.info(f"Updated rule: {rule.id}")
+            else:  # Create new rule
+                new_rule = Rule.objects.create(item=test_item, string=token['string'], regex=False, positive=False)
+                existing_rule_ids.add(new_rule.id)
+                logger.info(f"Created new rule: {new_rule.id}")
+
+        # Delete removed rules
+        deleted_rules = Rule.objects.filter(item=test_item).exclude(id__in=existing_rule_ids)
+        deleted_count, _ = deleted_rules.delete()
+        logger.info(f"Deleted {deleted_count} rules")
+
+        # Log the current rules in the database for debugging
+        current_rules = Rule.objects.filter(item=test_item)
+        logger.info(f"Current rules in the database: {RuleSerializer(current_rules, many=True).data}")
+
+        # Ensure source and translation text are included in the response
+        response_data = {
+            'source_sentence': test_item.source_sentence,
+            'target_sentence': translation.sentence,
+            'created_rules': RuleSerializer(Rule.objects.filter(id__in=existing_rule_ids, item=test_item), many=True).data,
+            
+        }
+        return Response(response_data, status=status.HTTP_200_OK)

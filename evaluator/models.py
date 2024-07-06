@@ -58,6 +58,7 @@ class TestItem(models.Model):  # former rules
         return self.source_sentence
     
 class Rule(models.Model):
+    id = models.BigAutoField(primary_key=True)
     item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
     string = models.CharField(max_length=200)
     regex = models.BooleanField(default=True)
@@ -66,7 +67,6 @@ class Rule(models.Model):
     def __str__(self):
         return self.string
     
-
 class Template(models.Model):  # former template_meta
     id = models.BigAutoField(primary_key=True)
     legacy_id = models.SmallIntegerField(

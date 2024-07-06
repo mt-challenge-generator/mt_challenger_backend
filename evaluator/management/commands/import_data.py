@@ -2,7 +2,7 @@ import os
 import json
 import codecs
 from django.core.management.base import BaseCommand
-from evaluator.models import Testset, TestItem, Phenomenon, Language, Langpair, Category
+from evaluator.models import Testset, TestItem, Phenomenon, Language, Langpair, Category, Rule
 
 class Command(BaseCommand):
     help = 'Import data from JSON file'
@@ -26,27 +26,29 @@ class Command(BaseCommand):
             data = json.load(file)
 
         # Iterate over the items in the JSON data
-        for item in data['items'][:50]:
-            # Assuming 'langpair' is a dictionary with 'source_language' and 'target_language' keys
+        for item in data.get('items', [])[:500]:
             langpair = item['langpair']
             source_language_code = langpair[:2]
             target_language_code = langpair[-2:]
-            
-                # Set the language names based on language codes
-            source_language_name = "English" if source_language_code == "en" else "Unknown"
-            target_language_name = "English" if source_language_code == "en" else "Unknown"
-            
-            source_language_name = "German" if source_language_code == "de" else "Unknown"
-            target_language_name = "German" if target_language_code == "de" else "Unknown"
 
-            
-            source_language_name = "Russain" if source_language_code == "rn" else "Unknown"
-            target_language_name = "Russain" if target_language_code == "rn" else "Unknown"
-            
+            # Set the language names based on language codes
+            if source_language_code == "en":
+                source_language_name = "English"
+            elif source_language_code == "de":
+                source_language_name = "German"
+            elif source_language_code == "rn":
+                source_language_name = "Russian"
+
+            if target_language_code == "en":
+                target_language_name = "English"
+            elif target_language_code == "de":
+                target_language_name = "German"
+            elif target_language_code == "rn":
+                target_language_name = "Russian"
+
             # Create or get Language objects with their names
             source_language, _ = Language.objects.get_or_create(code=source_language_code, defaults={'name': source_language_name})
             target_language, _ = Language.objects.get_or_create(code=target_language_code, defaults={'name': target_language_name})
-
 
             langpair, _ = Langpair.objects.get_or_create(
                 source_language=source_language,
@@ -71,13 +73,44 @@ class Command(BaseCommand):
                 name=item['phenomenon']
             )
 
-            TestItem.objects.create(
+            test_item = TestItem.objects.create(
                 legacy_id=item['id'],
                 testset=testset,
                 phenomenon=phenomenon,
                 source_sentence=item['source_sentence'],
                 comment=" This is a comment"
             )
+
+            # Create Rule objects for the current TestItem
+            if item['positive_regex']:
+                Rule.objects.create(
+                    item=test_item,
+                    string=item['positive_regex'],
+                    regex=True,
+                    positive=True
+                )
+
+            # If positive tokens are provided, create a positive Rule for each part
+            if item['positive_tokens']:
+                positive_tokens_parts = item['positive_tokens'].split('|')
+                for positive_part in positive_tokens_parts:
+                    Rule.objects.create(
+                        item=test_item,
+                        string=positive_part.strip(),
+                        regex=False,
+                        positive=True
+                    )
+
+            # If negative tokens are provided, create a negative Rule for each part
+            if item['negative_tokens']:
+                negative_tokens_parts = item['negative_tokens'].split('|')
+                for negative_part in negative_tokens_parts:
+                    Rule.objects.create(
+                        item=test_item,
+                        string=negative_part.strip(),
+                        regex=False,
+                        positive=False
+                    )
 
     def find_json_file(self, file_name):
         """
@@ -99,3 +132,4 @@ class Command(BaseCommand):
 
         # File not found
         return None
+ 

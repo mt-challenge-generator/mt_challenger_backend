@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report,Translation
+from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report,Translation,Category
 from evaluator.models import Testset, Rule, TestItem, Phenomenon
 
 
@@ -23,17 +23,29 @@ class TestItemSerializer(serializers.HyperlinkedModelSerializer):
         model = TestItem
         fields = "__all__"
 
-class PhenomenonSerializer(serializers.HyperlinkedModelSerializer):
+class PhenomenonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Phenomenon
-        # TODO: serialize the category of the phenomenon
-        fields = ["name"]
+        fields = ['name']
 
+class CategorySerializer(serializers.ModelSerializer):
+    phenomenon_set = PhenomenonSerializer(many=True, read_only=True)
 
-class RuleSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['name', 'phenomenon_set']
+
+class RuleSerializer(serializers.ModelSerializer):
+    source_sentence = serializers.CharField(source='item.source_sentence', read_only=True)
+    target_sentence = serializers.SerializerMethodField()
+
     class Meta:
         model = Rule
-        fields = "__all__"
+        fields = ['id', 'string', 'regex', 'positive', 'source_sentence', 'target_sentence']
+
+    def get_target_sentence(self, obj):
+        translation = Translation.objects.filter(test_item=obj.item).first()
+        return translation.sentence if translation else ""
 
 class LanguageSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -66,7 +78,11 @@ class ReportSerializer(serializers.ModelSerializer):
         fields='__all__'
         
 class TranslationSerializer(serializers.ModelSerializer):
+    source_sentence = serializers.CharField(source='test_item.source_sentence')
+    category_name = serializers.CharField(source='test_item.phenomenon.category.name')
+    phenomenon_name = serializers.CharField(source='test_item.phenomenon.name')
+
     class Meta:
-        model= Translation
-        fields='__all__'
-       
+        model = Translation
+        fields = ['id', 'label', 'sentence', 'source_sentence', 'category_name', 'phenomenon_name']      
+        
