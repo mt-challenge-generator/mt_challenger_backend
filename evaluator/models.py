@@ -112,6 +112,7 @@ class Translation(models.Model):  # former sentences
         PASS = 1
         FAIL = 2
         WARNING = 3
+        Conflict = 4
 
     test_item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
     report = models.ForeignKey(Report, on_delete=models.CASCADE)
@@ -121,7 +122,7 @@ class Translation(models.Model):  # former sentences
     )  # former sentences.pass
 
     def __str__(self):
-        return f"Translation for {self.test_item}"
+        return f"Translation Id {self.id}"
     
 class TemplatePosition(models.Model):  # former templates
     template = models.ForeignKey(

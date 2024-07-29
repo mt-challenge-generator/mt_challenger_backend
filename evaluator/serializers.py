@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report,Translation,Category
-from evaluator.models import Testset, Rule, TestItem, Phenomenon
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):

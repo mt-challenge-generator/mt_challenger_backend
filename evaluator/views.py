@@ -1,14 +1,12 @@
-import random
-import re
+import random , logging ,re
 from django.db import transaction
-from django.http import HttpResponse
 from rest_framework.generics import ListAPIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-import logging 
+from rest_framework.exceptions import ValidationError
 from evaluator.models import Testset, TestItem, Category,Phenomenon, Rule, Language, Langpair, Template, TemplatePosition, \
     Distractor, Report, Translation
 from evaluator.serializers import (
@@ -124,7 +122,7 @@ class TestItemViewSet(viewsets.ModelViewSet):
             print("text_file_content" + text_file_content)
 
             return Response({'template_id': new_template.id, 'text_file_content': text_file_content})
-            return Response("text_file_content")
+
         except Exception as e:
             print(e)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -188,7 +186,35 @@ class LangpairViewSet(viewsets.ModelViewSet):
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
     serializer_class = ReportSerializer
+    
+    def check_rules_for_translation(self, translation):
+        rules = Rule.objects.filter(item=translation.test_item)
+        print(rules)
+        positive_regex_rules = [rule for rule in rules if rule.regex and rule.positive]
+        negative_regex_rules = [rule for rule in rules if rule.regex and not rule.positive]
+        positive_token_rules = [rule for rule in rules if not rule.regex and rule.positive]
+        negative_token_rules = [rule for rule in rules if not rule.regex and not rule.positive]
 
+        positive_regex_match = any(re.search(rule.string, translation.sentence) for rule in positive_regex_rules)
+        negative_regex_match = any(re.search(rule.string, translation.sentence) for rule in negative_regex_rules)
+        positive_token_match = any(re.search(rule.string, translation.sentence) for rule in positive_token_rules)
+        negative_token_match = any(re.search(rule.string, translation.sentence) for rule in negative_token_rules)
+
+        if (positive_regex_match and negative_regex_match) or (positive_token_match and negative_token_match):
+            translation.label = Translation.Label.CONFLICT
+        elif positive_regex_match:
+            translation.label = Translation.Label.PASS
+        elif negative_regex_match:
+            translation.label = Translation.Label.FAIL
+        elif positive_token_match:
+            translation.label = Translation.Label.PASS
+        elif negative_token_match:
+            translation.label = Translation.Label.FAIL
+        else:
+            translation.label = Translation.Label.WARNING
+
+        translation.save()
+    
     @transaction.atomic
     def create(self, request):
         reports_data = request.data.get('reports', [])
@@ -220,12 +246,14 @@ class ReportViewSet(viewsets.ModelViewSet):
                             report=report,
                             sentence=translation_segment
                         )
+                        
+                        self.check_rules_for_translation(translation)
 
             return Response({'message': 'Reports and Translation Objects have been created'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             print(e)
-            return HttpResponse({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+            raise ValidationError({'error': str(e)})
+        
 class TranslationViewSet(viewsets.ModelViewSet):
     queryset = Translation.objects.all()
     serializer_class = TranslationSerializer
@@ -261,6 +289,7 @@ logger = logging.getLogger(__name__)
 class UpdateRulesView(APIView):
     def post(self, request):
         data = request.data
+        label = data.get('label')
         translation_id = data.get('translation_id')
         positive_regexes = data.get('positive_regexes', [])
         negative_regexes = data.get('negative_regexes', [])
@@ -268,11 +297,22 @@ class UpdateRulesView(APIView):
         negative_tokens = data.get('negative_tokens', [])
 
         logger.info(f"Received data: {data}")
-
+        print("Label:", label)
         # Get the Translation and associated TestItem
         translation = get_object_or_404(Translation, pk=translation_id)
+         # Update the label of the translation based on the provided label
+        if label == "PASS":
+            translation.label = 1
+        elif label == "FAIL":
+            translation.label = 2
+        elif label == "CONFLICT":
+            translation.label = 4
+        else:
+            translation.label = 3
+        translation.save()
+        logger.info(f"Updated translation label: {translation.label}")
+        
         test_item = translation.test_item
-
         # Collect all existing rule IDs from the request data
         existing_rule_ids = set()
 
@@ -345,3 +385,4 @@ class UpdateRulesView(APIView):
             
         }
         return Response(response_data, status=status.HTTP_200_OK)
+    
