@@ -1,4 +1,7 @@
 import random , logging ,re
+import pandas as pd
+from scipy.stats import norm
+import numpy as np
 from django.db import transaction
 from rest_framework.generics import ListAPIView
 from rest_framework import viewsets, status
@@ -18,7 +21,8 @@ from evaluator.serializers import (
     LanguageSerializer,
     LangpairSerializer,
     ReportSerializer,
-    TranslationSerializer
+    TranslationSerializer,
+    TemplateWithReportSerializer
 )
 
 
@@ -189,7 +193,7 @@ class ReportViewSet(viewsets.ModelViewSet):
     
     def check_rules_for_translation(self, translation):
         rules = Rule.objects.filter(item=translation.test_item)
-        print(rules)
+      
         positive_regex_rules = [rule for rule in rules if rule.regex and rule.positive]
         negative_regex_rules = [rule for rule in rules if rule.regex and not rule.positive]
         positive_token_rules = [rule for rule in rules if not rule.regex and rule.positive]
@@ -386,3 +390,116 @@ class UpdateRulesView(APIView):
         }
         return Response(response_data, status=status.HTTP_200_OK)
     
+class TemplateWithReportViewSet(viewsets.ModelViewSet):
+    queryset = Template.objects.all()
+    serializer_class = TemplateWithReportSerializer
+
+class CompareReportsView(APIView):
+    def post(self, request):
+        report_ids = request.data.get('report_ids', [])
+        categories = Category.objects.all()
+        result = {}
+        all_accuracies = {}
+        
+        report_pass_counts = {report_id: 0 for report_id in report_ids}
+        report_testitems = {report_id: 0 for report_id in report_ids}
+       
+        for category in categories:
+            test_items = TestItem.objects.filter(
+                phenomenon__category=category,
+                translation__report__id__in=report_ids,
+                translation__label__in=[Translation.Label.PASS, Translation.Label.FAIL]
+            ).distinct()
+
+            comparison_array = []
+            for test_item in test_items:
+                translations = Translation.objects.filter(
+                    test_item=test_item,
+                    report__id__in=report_ids, # check for duplicates
+                    label__in=[Translation.Label.PASS, Translation.Label.FAIL]
+                ).order_by('report_id')
+
+                if translations.count() == len(report_ids):
+                    row = [1 if translation.label == Translation.Label.PASS else 0 for translation in translations]
+                    comparison_array.append(row)
+                    for i, translation in enumerate(translations):
+                        if translation.label == Translation.Label.PASS:
+                            report_pass_counts[report_ids[i]] += 1
+                        report_testitems[report_ids[i]] += 1  
+                else:
+                    continue
+
+            
+            accuracies, category_average = self.calculate_accuracies(comparison_array,report_ids)
+        
+            all_accuracies[category.name] = accuracies
+            accuracy_df = pd.DataFrame.from_dict(all_accuracies, orient='index', columns=report_ids)
+            
+            styled_accuracies = accuracy_df.apply(self.annotate_significance, axis=1)
+            print("styled_accuracies", styled_accuracies[0])
+            result[category.name] = {
+                "average": category_average,
+                "data": [
+                    {
+                        "accuracy": accuracy,
+                        "significant": styled
+                    }
+                    for accuracy, styled in zip(accuracies, styled_accuracies[0])
+                ]
+            }
+        
+        micro_averages = {}
+        macro_averages = {} 
+
+        for report_id in report_ids:
+            total_category_averages = sum([cat_data['average'] for cat_data in result.values()])
+            micro_averages[report_id] = (total_category_averages / len(categories))
+            
+            if report_testitems[report_id] > 0:
+                macro_averages[report_id] = ((report_pass_counts[report_id] / report_testitems[report_id]) * 100)
+            else:
+                macro_averages[report_id] = 0.00
+
+        return Response({
+            "result": result,
+            "micro_averages": micro_averages,
+            "macro_averages": macro_averages,
+            
+        })
+    
+    def calculate_accuracies(self, comparison_array, report_ids):  
+        if comparison_array:
+            accuracies = [
+                sum(col) / len(comparison_array) if len(comparison_array) > 0 else 0
+                for col in zip(*comparison_array)
+            ]
+            category_average = (sum(accuracies) / len(accuracies)) if accuracies else 0.00
+        else:
+            accuracies = [0] * len(report_ids) # fetch the reports id from frontend
+            category_average = 0.00
+        return accuracies, category_average 
+        
+    def annotate_significance(self, row, alpha= 0.05, significant=True, non_significant=False):
+        best_accuracy = row.max()
+        n = len(row)
+        comparison_results = []
+        
+        for i, accuracy in enumerate(row):
+            if accuracy == best_accuracy:
+                comparison_results.append(non_significant)  # Bold the best system
+            else:
+                if n > 1:
+                    std_dev = np.sqrt((accuracy * (1 - accuracy)) / n)
+                    if std_dev > 0:
+                        z_score = (best_accuracy - accuracy) / std_dev
+                        critical_z_value = norm.ppf(1 - alpha)  # One-tailed Z-test for α = 0.05
+                        
+                        if z_score < critical_z_value:
+                            comparison_results.append(significant)  
+                        else:
+                            comparison_results.append(non_significant) 
+                    else:
+                        comparison_results.append(significant) 
+                else:
+                    comparison_results.append(non_significant)  
+        return comparison_results

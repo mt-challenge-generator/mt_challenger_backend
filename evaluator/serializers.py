@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report,Translation,Category
+from evaluator.models import Testset, Rule, TestItem, Phenomenon, Langpair, Language, Distractor, Report,Translation,Category, Template
 
 
 class TestSetSerializer(serializers.HyperlinkedModelSerializer):
@@ -68,7 +68,7 @@ class ReportSerializer(serializers.ModelSerializer):
         try:
             source_language = obj.template.testset.langpair.source_language.code.upper()
             target_language = obj.template.testset.langpair.target_language.code.upper()
-            return f"{source_language} -> {target_language}"
+            return f"{source_language} \u2192 {target_language}"
         except AttributeError:
             return None
         
@@ -85,3 +85,23 @@ class TranslationSerializer(serializers.ModelSerializer):
         model = Translation
         fields = ['id', 'label', 'sentence', 'source_sentence', 'category_name', 'phenomenon_name']      
         
+class TemplateWithReportSerializer(serializers.ModelSerializer):
+    engines = serializers.SerializerMethodField()
+    language_direction = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Template
+        fields = ['id', 'legacy_id', 'name', 'select', 'scramble_factor', 'created_time', 'engines', "language_direction"]
+
+    def get_engines(self, obj):
+        reports = Report.objects.filter(template=obj)
+        # Return a list of dictionaries with both id and engine name
+        return [{'reportid': report.id, 'engine_name': report.engine} for report in reports]
+   
+    def get_language_direction(self, obj):
+        try:
+            source_language = obj.testset.langpair.source_language.code.upper()
+            target_language = obj.testset.langpair.target_language.code.upper()
+            return f"{source_language} \u2192 {target_language}"
+        except AttributeError:
+            return None
