@@ -17,14 +17,13 @@ class Langpair(models.Model):
     )
     def __str__(self):
         return f"{self.source_language} to {self.target_language}"  
-     
 class Testset(models.Model):
     name = models.CharField(max_length=40)
     description = models.CharField(max_length=250)
     langpair = models.ForeignKey(Langpair, on_delete=models.CASCADE)
     
     def __str__(self):
-        return self.name
+        return self.description
 
 class Category(models.Model):  # values from rules.category
     name = models.CharField(max_length=30)
@@ -43,7 +42,7 @@ class Phenomenon(models.Model):  # values from rules.barrier
 
 class TestItem(models.Model):  # former rules
     id = models.BigAutoField(primary_key=True)
-    legacy_id = models.CharField(max_length=10, blank=True, null=True )  # former rules.ID
+    legacy_id = models.CharField(max_length=10, blank=True, null=True, db_index=True)  # former rules.ID
     legacy_testpoint = models.SmallIntegerField(blank=True, null=True)  # former rules.testPoint
     legacy_version = models.SmallIntegerField(blank=True, null=True)  # former rules.version
     testset = models.ForeignKey(Testset, on_delete=models.CASCADE)
@@ -90,7 +89,7 @@ class Template(models.Model):  # former template_meta
 
 class Report(models.Model):  # former reports
     id = models.BigAutoField(primary_key=True)
-    legacy_id = models.SmallIntegerField(blank=True, null=True)  # former reports.id
+    legacy_id = models.SmallIntegerField(blank=True, null=True,db_index=True)  # former reports.id
     template = models.ForeignKey(
         Template, on_delete=models.CASCADE
     )  # resolve from reports.templateid
@@ -100,7 +99,7 @@ class Report(models.Model):  # former reports
     created_time = models.DateTimeField(auto_now_add=True)  # former reports.time
 
     def __str__(self):
-        return f"Report {self.id}"
+        return f"Report {self.legacy_id}"
 
 class Translation(models.Model):  # former sentences
     id = models.BigAutoField(primary_key=True)
@@ -115,7 +114,7 @@ class Translation(models.Model):  # former sentences
         Conflict = 4
 
     test_item = models.ForeignKey(TestItem, on_delete=models.CASCADE)
-    report = models.ForeignKey(Report, on_delete=models.CASCADE)
+    report = models.ForeignKey(Report, on_delete=models.CASCADE,db_index=True)
     sentence = models.CharField(max_length=500)  # former sentences.translation
     label = models.IntegerField(
         choices=Label.choices, default=3
@@ -134,7 +133,7 @@ class TemplatePosition(models.Model):  # former templates
     pos = models.IntegerField()  # former templates.pos
 
     def __str__(self):
-        return f"Position {self.pos} in template {self.template_id}"
+        return f"Position {self.pos} in template {self.template} testItem {self.test_item}"
     
 class Distractor(models.Model):  # former distractors
     text = models.CharField(max_length=500)

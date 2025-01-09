@@ -59,8 +59,6 @@ class TestItemViewSet(viewsets.ModelViewSet):
 
             queryset = TestItem.objects.all()
 
-         
-            
             langpair_query = Langpair.objects.all()
             if source_language:
                 langpair_query = langpair_query.filter(source_language__code=source_language)
@@ -300,8 +298,6 @@ class UpdateRulesView(APIView):
         positive_tokens = data.get('positive_tokens', [])
         negative_tokens = data.get('negative_tokens', [])
 
-        logger.info(f"Received data: {data}")
-        print("Label:", label)
         # Get the Translation and associated TestItem
         translation = get_object_or_404(Translation, pk=translation_id)
          # Update the label of the translation based on the provided label
@@ -436,7 +432,7 @@ class CompareReportsView(APIView):
             accuracy_df = pd.DataFrame.from_dict(all_accuracies, orient='index', columns=report_ids)
             
             styled_accuracies = accuracy_df.apply(self.annotate_significance, axis=1)
-            print("styled_accuracies", styled_accuracies[0])
+           
             result[category.name] = {
                 "average": category_average,
                 "data": [
@@ -444,7 +440,7 @@ class CompareReportsView(APIView):
                         "accuracy": accuracy,
                         "significant": styled
                     }
-                    for accuracy, styled in zip(accuracies, styled_accuracies[0])
+                    for accuracy, styled in zip(accuracies, styled_accuracies.iloc[0])
                 ]
             }
         
@@ -503,3 +499,15 @@ class CompareReportsView(APIView):
                 else:
                     comparison_results.append(non_significant)  
         return comparison_results
+    
+class MatchingReportsView(APIView): 
+    def get(self,request, template_id): 
+        try: 
+            template = Template.objects.get(id=template_id)  
+            engine_names = template.report_set.values_list('engine', flat=True).distinct() 
+            langpair = template.testset.langpair 
+            matching_reports = Report.objects.filter(engine__in=engine_names, template__testset__langpair=langpair).exclude(template = template) 
+            serializer = ReportSerializer(matching_reports, many=True) 
+            return Response(serializer.data, status=status.HTTP_200_OK) 
+        except Template.DoesNotExist: 
+            return Response({"error": "Template not found."}, status=status.HTTP_404_NOT_FOUND)
