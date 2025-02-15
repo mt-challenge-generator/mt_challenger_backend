@@ -3,6 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 import numpy as np
 from django.db import transaction
+from django.db.models import Prefetch
 from rest_framework.generics import ListAPIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -22,7 +23,8 @@ from evaluator.serializers import (
     LangpairSerializer,
     ReportSerializer,
     TranslationSerializer,
-    TemplateWithReportSerializer
+    TemplateWithReportSerializer,
+    TestItemWithTranslationsSerializer
 )
 
 
@@ -65,7 +67,6 @@ class TestItemViewSet(viewsets.ModelViewSet):
             if target_language:
                 langpair_query = langpair_query.filter(target_language__code=target_language)
             
-            
             testset_query = Testset.objects.filter(langpair__in=langpair_query)
             
         
@@ -93,12 +94,19 @@ class TestItemViewSet(viewsets.ModelViewSet):
             scrambling_factor = data.get('scramblingFactor', 1)
 
             scrambling_factor = int(scrambling_factor)
+            if not content:
+                return Response({'error': 'Content list is empty.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+            if len(content) < scrambling_factor:
+                return Response({'error': 'Not enough items for the given scrambling_factor.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            if len(content) >= scrambling_factor:
-                rand_list = random.sample(range(1, len(content) * scrambling_factor + 1), len(content))
-                print(rand_list)
-            else:
-                print("Error: Not enough items for the given scrambling_factor.")
+            print(f"Content length: {len(content)}")
+            print(f"Scrambling factor: {scrambling_factor}")
+            print(f"Range for sampling: {range(1, len(content) * scrambling_factor + 1)}")
+
+            rand_list = random.sample(range(1, len(content) * scrambling_factor + 1), len(content))
+            print(rand_list)
+        
 
             global source_language, target_language  # Access as global
             # Retrieve the Testset object based on source and target languages
@@ -121,14 +129,12 @@ class TestItemViewSet(viewsets.ModelViewSet):
     
             # Generate the text file content
             text_file_content = self.generate_text_file_content(new_template)
-            print("text_file_content" + text_file_content)
+            #print("text_file_content" + text_file_content)
 
             return Response({'template_id': new_template.id, 'text_file_content': text_file_content})
-
+        
         except Exception as e:
-            print(e)
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            
+            print(e) 
 
     def create_template_positions(self, filtered_items, rand_list, template):
         try:
@@ -143,7 +149,7 @@ class TestItemViewSet(viewsets.ModelViewSet):
                         test_item=test_item,
                         pos=position
                     )
-                    print(template_position)
+                    #print(template_position)
         except Exception as e:
             print(f"Error creating template positions: {str(e)}")
             
@@ -269,7 +275,6 @@ class ReportTranslationsListView(ListAPIView):
 
         # Filter translations by the specified report ID
         queryset = Translation.objects.filter(report_id=report_id)
-
         return queryset
     
 class RulesByTranslationId(APIView):
@@ -399,39 +404,62 @@ class CompareReportsView(APIView):
         
         report_pass_counts = {report_id: 0 for report_id in report_ids}
         report_testitems = {report_id: 0 for report_id in report_ids}
-       
+        translations_prefetch = Prefetch(
+            'translation_set',
+            queryset=Translation.objects.filter(
+                report__id__in=report_ids,
+                label__in=[Translation.Label.PASS, Translation.Label.FAIL]
+            ).order_by('report_id'),
+            to_attr='filtered_translations'
+        )
         for category in categories:
             test_items = TestItem.objects.filter(
                 phenomenon__category=category,
                 translation__report__id__in=report_ids,
                 translation__label__in=[Translation.Label.PASS, Translation.Label.FAIL]
-            ).distinct()
+            ).prefetch_related(translations_prefetch).distinct()
 
             comparison_array = []
             for test_item in test_items:
-                translations = Translation.objects.filter(
-                    test_item=test_item,
-                    report__id__in=report_ids, # check for duplicates
-                    label__in=[Translation.Label.PASS, Translation.Label.FAIL]
-                ).order_by('report_id')
-
-                if translations.count() == len(report_ids):
-                    row = [1 if translation.label == Translation.Label.PASS else 0 for translation in translations]
+                translations = test_item.filtered_translations
+                present_report_ids = {t.report_id for t in translations}
+                
+                # Check all reports have translations
+                if all(rid in present_report_ids for rid in report_ids):
+                    # Sort translations by report_ids order
+                    translations_sorted = sorted(
+                        translations, 
+                        key=lambda t: report_ids.index(t.report_id)
+                    )
+                    row = []
+                    for t in translations_sorted:
+                        if t.label == Translation.Label.PASS:
+                            row.append(1)
+                            report_pass_counts[t.report_id] += 1
+                        else:
+                            row.append(0)
+                        report_testitems[t.report_id] += 1
                     comparison_array.append(row)
-                    for i, translation in enumerate(translations):
-                        if translation.label == Translation.Label.PASS:
-                            report_pass_counts[report_ids[i]] += 1
-                        report_testitems[report_ids[i]] += 1  
-                else:
-                    continue
-
-            
+                    
             accuracies, category_average = self.calculate_accuracies(comparison_array,report_ids)
-        
-            all_accuracies[category.name] = accuracies
-            accuracy_df = pd.DataFrame.from_dict(all_accuracies, orient='index', columns=report_ids)
+            n_test_items = len(comparison_array)
             
-            styled_accuracies = accuracy_df.apply(self.annotate_significance, axis=1)
+            all_accuracies[category.name] =  {
+                'accuracies': accuracies,
+                'n_test_items': n_test_items
+            }
+            accuracy_df = pd.DataFrame(
+                [accuracies],
+                index=[category.name],
+                columns=report_ids
+            )
+            accuracy_df['n_test_items'] = n_test_items
+            
+            styled = accuracy_df.apply(
+                lambda row: self.annotate_significance(row), 
+                axis=1
+            ).iloc[0]
+            
            
             result[category.name] = {
                 "average": category_average,
@@ -440,7 +468,7 @@ class CompareReportsView(APIView):
                         "accuracy": accuracy,
                         "significant": styled
                     }
-                    for accuracy, styled in zip(accuracies, styled_accuracies.iloc[0])
+                    for accuracy, styled in zip(accuracies, styled)
                 ]
             }
         
@@ -482,7 +510,8 @@ class CompareReportsView(APIView):
         
         for i, accuracy in enumerate(row):
             if accuracy == best_accuracy:
-                comparison_results.append(non_significant)  # Bold the best system
+                comparison_results.append(non_significant) 
+                continue # Bold the best system
             else:
                 if n > 1:
                     std_dev = np.sqrt((accuracy * (1 - accuracy)) / n)
@@ -511,3 +540,34 @@ class MatchingReportsView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK) 
         except Template.DoesNotExist: 
             return Response({"error": "Template not found."}, status=status.HTTP_404_NOT_FOUND)
+
+class CategoryTestItemsView(APIView):
+    def get(self, request, category):
+        try:
+            # Fetch the category object
+            category_obj = get_object_or_404(Category, name=category)
+
+            # Get report IDs from the request
+            report_ids = request.GET.getlist("reports")
+            #print("Report IDs:", report_ids)
+
+            # If report_ids is a single string with commas, split it
+            if len(report_ids) == 1 and ',' in report_ids[0]:
+                report_ids = report_ids[0].split(',')
+                #print("Parsed Report IDs:", report_ids)
+
+            # Convert report_ids to integers
+            report_ids = [int(report_id) for report_id in report_ids]
+            #print("Final Report IDs:", report_ids)
+
+            # Fetch test items related to the category
+            test_items = TestItem.objects.filter(phenomenon__category=category_obj)
+            #print("Number of test items:", test_items.count())
+
+            # Serialize the test items with translations
+            serializer = TestItemWithTranslationsSerializer(test_items, many=True, context={'report_ids': report_ids})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            #print("Error occurred:", str(e))
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

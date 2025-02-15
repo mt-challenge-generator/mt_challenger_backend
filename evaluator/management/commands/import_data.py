@@ -200,7 +200,7 @@ class Command(BaseCommand):
             for meta_id, meta in template_meta_data:
                 try:
                   
-                    select, scramble_factor, categories_and_phenomena = self.parse_meta_string(meta) #filter is not working
+                    select, scramble_factor, categories_and_phenomena = self.parse_meta_string(meta) 
 
                     categories = Category.objects.filter(name__in=categories_and_phenomena)
                     phenomena = Phenomenon.objects.filter(name__in=categories_and_phenomena)
@@ -218,9 +218,8 @@ class Command(BaseCommand):
                     langpair = Langpair.objects.get(source_language=source_lang, target_language=target_lang)
                     testset = Testset.objects.get(langpair=langpair)
 
-                 
                     template = Template(
-                            legacy_id=meta_id,
+                            legacy_id=meta_id, #I only have 90 templates form previous database starting from 313 to 402
                             testset=testset,
                             name=f"Template {meta_id}",
                             select=select,
@@ -233,14 +232,14 @@ class Command(BaseCommand):
                     
                     for _ , sentence, pos, _ in templates_data:
                         try:
-                            testitem = TestItem.objects.get(legacy_id=sentence) 
+                            testitem = TestItem.objects.get(legacy_id=sentence, testset=testset) 
                         except TestItem.DoesNotExist:
                             print(f"TestItem in template_meta Id { meta_id } with legacy_id {sentence} not found.")
                             continue
                         
                         template_position = TemplatePosition(
                             template=template,
-                            test_item=testitem, #TestItem matching query does not exist. It give me two objects
+                            test_item=testitem, 
                             pos=pos,
                         )
                         template_positions.append(template_position)
@@ -273,10 +272,10 @@ class Command(BaseCommand):
             for report_data in reports_data:
                 try:
                     report_id, template_id, engine, engine_type, comment, time = report_data
-
+                    
                     # Ensure the template exists
                     try:
-                        template = Template.objects.get(legacy_id=template_id)
+                        template = Template.objects.get(legacy_id=template_id) #I can only get templates from legacy_id 313 to 402
                     except Template.DoesNotExist:
                         self.stderr.write(f"Template with legacy_id {template_id} not found. Skipping report ID {report_id}.")
                         continue
@@ -330,16 +329,13 @@ class Command(BaseCommand):
 
             Translation.objects.bulk_create(translations)
             self.stdout.write(f"Migrated {len(translations)} translations.")
-        
-        
+    
     def handle(self, *args, **kwargs):
-        #self.migrate_languages() 
-        #self.migrate_langpairs_testset()
-        #self.migrate_categories_and_phenomena()
-        #self.migrate_distractors()
-        #self.migrate_testitems_and_rules()
-        #self.migrate_templates_and_positions()
-        #self.migrate_reports()
-        self.migrate_translations()
-        
-     
+        self.migrate_languages() 
+        self.migrate_langpairs_testset()
+        self.migrate_categories_and_phenomena()
+        self.migrate_distractors()
+        self.migrate_testitems_and_rules()
+        self.migrate_templates_and_positions()
+        self.migrate_reports()
+        self.migrate_translations()   

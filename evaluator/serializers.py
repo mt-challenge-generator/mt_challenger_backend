@@ -105,3 +105,27 @@ class TemplateWithReportSerializer(serializers.ModelSerializer):
             return f"{source_language} \u2192 {target_language}"
         except AttributeError:
             return None
+
+class TestItemWithTranslationsSerializer(serializers.ModelSerializer):
+    translations = serializers.SerializerMethodField()
+    category_name = serializers.CharField(source='phenomenon.category.name', read_only=True)
+    phenomenon_name = serializers.CharField(source='phenomenon.name', read_only=True)
+
+    class Meta:
+        model = TestItem
+        fields = ['id', 'source_sentence', 'category_name', 'phenomenon_name', 'translations']
+
+    def get_translations(self, obj):
+        report_ids = self.context.get('report_ids', [])
+        translations = Translation.objects.filter(test_item=obj, report__id__in=report_ids)
+
+        # Create a dictionary to hold translations for each report ID
+        translation_dict = {report_id: None for report_id in report_ids}
+
+        for translation in translations:
+            translation_dict[translation.report.engine] = translation.sentence
+
+        # Remove entries with None values
+        translation_dict = {k: v for k, v in translation_dict.items() if v is not None}
+
+        return translation_dict

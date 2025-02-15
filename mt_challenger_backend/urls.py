@@ -3,7 +3,15 @@ from rest_framework import routers
 from django.contrib import admin
 import generator.views
 import evaluator.views
-from evaluator.views import ReportTranslationsListView, RulesByTranslationId, UpdateRulesView,TemplateWithReportViewSet, CompareReportsView, MatchingReportsView
+from evaluator.views import (
+ReportTranslationsListView,
+RulesByTranslationId, 
+UpdateRulesView,
+TemplateWithReportViewSet, 
+CompareReportsView, 
+MatchingReportsView,
+CategoryTestItemsView,
+)
 
 router = routers.DefaultRouter()
 router.register(r"testsets", evaluator.views.TestSetViewSet)
@@ -31,6 +39,5 @@ urlpatterns = [
     path('api/matching-reports/<int:template_id>/', MatchingReportsView.as_view(), name='matching-reports'),
     path('api/update-rules/', UpdateRulesView.as_view(), name='update-rules'),
     path('api/compare-reports/', CompareReportsView.as_view(), name='compare-reports'),
-    
- 
+    path('api/category/<str:category>/test-items/', CategoryTestItemsView.as_view(), name='category-test-items'),
 ]
