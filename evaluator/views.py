@@ -24,8 +24,10 @@ from evaluator.serializers import (
     ReportSerializer,
     TranslationSerializer,
     TemplateWithReportSerializer,
-    TestItemWithTranslationsSerializer
+    TestItemWithTranslationsSerializer,
+    FilteredTestItemSerializer
 )
+from django.contrib.sessions.models import Session
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -48,114 +50,123 @@ class TestItemViewSet(viewsets.ModelViewSet):
     serializer_class = TestItemSerializer
     source_language = None
     target_language = None  
+    filtered_items = [] 
+
     @action(detail=False, methods=['post'])
     def filter_test_items(self, request):
         try:
             data = request.data
-            global source_language, target_language
-            source_language = data.get('source_language', None)
-            target_language = data.get('target_language', None)
+            self.source_language = data.get('source_language', None)
+            self.target_language = data.get('target_language', None)
             categories = data.get('categories', [])
             phenomena = data.get('phenomena', [])
-            how_many = data.get('howMany', 0)
+            how_many = data.get('howMany', None)
+            percentage = data.get('percentage', None)
+            
 
             queryset = TestItem.objects.all()
 
             langpair_query = Langpair.objects.all()
-            if source_language:
-                langpair_query = langpair_query.filter(source_language__code=source_language)
-            if target_language:
-                langpair_query = langpair_query.filter(target_language__code=target_language)
+            
+            if self.source_language:
+                langpair_query = langpair_query.filter(source_language__code=self.source_language)
+            if self.target_language:
+                langpair_query = langpair_query.filter(target_language__code=self.target_language)
             
             testset_query = Testset.objects.filter(langpair__in=langpair_query)
             
         
             queryset = TestItem.objects.filter(testset__in=testset_query)
         
-            # # Filter by categories
             if categories:
                queryset = queryset.filter(phenomenon__category__name__in=categories)
                
-            # # Filter by phenomena
+            
             if phenomena:
                 queryset = queryset.filter(phenomenon__name__in=phenomena)
             
-            # Get the desired fields
-            Result = queryset.values_list('id', 'source_sentence', 'phenomenon__name', 'phenomenon__category__name')[:how_many]
-            return Response(Result)  
+            if percentage:
+                total_count = queryset.count()
+                how_many = (total_count * int(percentage)) // 100
+                
+            if how_many is not None:
+                how_many = int(how_many)  
+
+            # Serialize the results
+            self.filtered_items = queryset[:how_many]  
+            request.session['filtered_items'] = [item.id for item in self.filtered_items]
+            request.session.modified = True
+            request.session.save()
+            print(f"Session ID in filter_test_items: {request.session.session_key}")
+
+            serializer = FilteredTestItemSerializer(self.filtered_items, many=True)
+            return Response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
     @action(detail=False, methods=['post'])
     def download_text_file(self, request):
+        
         try:
             data = request.data
-            content = data.get('content', [])
-            scrambling_factor = data.get('scramblingFactor', 1)
+            scrambling_factor = int(data.get('scramblingFactor', 1)) 
+            testitem_ids = data.get('content', []) 
 
-            scrambling_factor = int(scrambling_factor)
-            if not content:
-                return Response({'error': 'Content list is empty.'}, status=status.HTTP_400_BAD_REQUEST)
+            test_items = list(TestItem.objects.filter(id__in=testitem_ids))
         
-            if len(content) < scrambling_factor:
+            if len(test_items) < scrambling_factor:
                 return Response({'error': 'Not enough items for the given scrambling_factor.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            print(f"Content length: {len(content)}")
-            print(f"Scrambling factor: {scrambling_factor}")
-            print(f"Range for sampling: {range(1, len(content) * scrambling_factor + 1)}")
-
-            rand_list = random.sample(range(1, len(content) * scrambling_factor + 1), len(content))
-            print(rand_list)
+            rand_list = random.sample(range(1, len(test_items) * scrambling_factor + 1), len(test_items))
         
-
-            global source_language, target_language  # Access as global
-            # Retrieve the Testset object based on source and target languages
             langpair_query = Langpair.objects.all()
-            if source_language:
-                langpair_query = langpair_query.filter(source_language__code=source_language)
-            if target_language:
-                langpair_query = langpair_query.filter(target_language__code=target_language)
+            if self.source_language:
+                langpair_query = langpair_query.filter(source_language__code=self.source_language)
+            if self.target_language:
+                langpair_query = langpair_query.filter(target_language__code=self.target_language)
             
             testset = Testset.objects.filter(langpair__in=langpair_query).first() 
-            # Create a new Template
             new_template = Template.objects.create(
                 select=0.0,
                 scramble_factor=scrambling_factor,
-                testset = testset
+                testset=testset
             )
-
-            # Create TemplatePositions 
-            self.create_template_positions(content, rand_list, new_template)
+           
+            self.create_template_positions(test_items, rand_list, new_template)
     
             # Generate the text file content
             text_file_content = self.generate_text_file_content(new_template)
-            #print("text_file_content" + text_file_content)
-
-            return Response({'template_id': new_template.id, 'text_file_content': text_file_content})
+            
+            # Return the file as a downloadable response
+            return Response({
+                'template_id': new_template.id,  # Include the template ID
+                'text_file_content': text_file_content  # Include the text file content
+            }, status=status.HTTP_200_OK)
         
         except Exception as e:
-            print(e) 
-
+            logger.error(f"Error in download_text_file: {str(e)}")  # Log the error
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            
     def create_template_positions(self, filtered_items, rand_list, template):
         try:
             with transaction.atomic():
-                for i, item_data in enumerate(filtered_items):
-                    test_item_id = item_data.get('dataPointId', None)
-                    test_item = TestItem.objects.get(id=test_item_id)
-                    # Create TemplatePosition for each TestItem
+                for i, test_item in enumerate(filtered_items):
                     position = rand_list[i]
-                    template_position =   TemplatePosition.objects.create(
+                    
+                    TemplatePosition.objects.create(
                         template=template,
                         test_item=test_item,
                         pos=position
                     )
-                    #print(template_position)
+          
         except Exception as e:
             print(f"Error creating template positions: {str(e)}")
             
     def generate_text_file_content(self ,template):
-        #  try:
+           
+            try:
                 template_positions = TemplatePosition.objects.filter(template=template)
+                print("Template Positions" , template_positions)
                 text_file_content = []
                 for position in range(1, len(template_positions)* template.scramble_factor + 1):
                     template_position = template_positions.filter(pos=position).first()
@@ -167,8 +178,8 @@ class TestItemViewSet(viewsets.ModelViewSet):
                         text_file_content.append(f" {random_distractor.text}")
                 return '\n'.join(text_file_content)
 
-            # except Exception as e:
-            #     return None
+            except Exception as e:
+                print("error", e)
             
     def get_random_distractor(self, language):
         distractors = Distractor.objects.filter(language=language)
@@ -404,10 +415,11 @@ class CompareReportsView(APIView):
         
         report_pass_counts = {report_id: 0 for report_id in report_ids}
         report_testitems = {report_id: 0 for report_id in report_ids}
+        
         translations_prefetch = Prefetch(
             'translation_set',
-            queryset=Translation.objects.filter(
-                report__id__in=report_ids,
+            queryset=Translation.objects.filter( #fetch translation objects that match following condits:
+                report__id__in=report_ids, #translation belong to report_id and has a pass or fail label
                 label__in=[Translation.Label.PASS, Translation.Label.FAIL]
             ).order_by('report_id'),
             to_attr='filtered_translations'
@@ -424,7 +436,7 @@ class CompareReportsView(APIView):
                 translations = test_item.filtered_translations
                 present_report_ids = {t.report_id for t in translations}
                 
-                # Check all reports have translations
+                
                 if all(rid in present_report_ids for rid in report_ids):
                     # Sort translations by report_ids order
                     translations_sorted = sorted(
@@ -499,7 +511,7 @@ class CompareReportsView(APIView):
             ]
             category_average = (sum(accuracies) / len(accuracies)) if accuracies else 0.00
         else:
-            accuracies = [0] * len(report_ids) # fetch the reports id from frontend
+            accuracies = [0] * len(report_ids) 
             category_average = 0.00
         return accuracies, category_average 
         
@@ -544,30 +556,44 @@ class MatchingReportsView(APIView):
 class CategoryTestItemsView(APIView):
     def get(self, request, category):
         try:
-            # Fetch the category object
             category_obj = get_object_or_404(Category, name=category)
 
-            # Get report IDs from the request
             report_ids = request.GET.getlist("reports")
-            #print("Report IDs:", report_ids)
 
-            # If report_ids is a single string with commas, split it
             if len(report_ids) == 1 and ',' in report_ids[0]:
                 report_ids = report_ids[0].split(',')
-                #print("Parsed Report IDs:", report_ids)
+           
 
             # Convert report_ids to integers
             report_ids = [int(report_id) for report_id in report_ids]
-            #print("Final Report IDs:", report_ids)
-
-            # Fetch test items related to the category
+          
             test_items = TestItem.objects.filter(phenomenon__category=category_obj)
-            #print("Number of test items:", test_items.count())
 
             # Serialize the test items with translations
             serializer = TestItemWithTranslationsSerializer(test_items, many=True, context={'report_ids': report_ids})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            #print("Error occurred:", str(e))
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class UpdateTranslationLabelView(APIView):
+    def post(self, request):
+        translationid = request.data.get("translation_id")
+        label = request.data.get("label")
+        
+        label_mapping = {
+            "PASS": 1,
+            "FAIL": 2,
+            "WARNING": 3,
+            "CONFLICT": 4
+        }
+        new_label = label_mapping.get(label)
+        translation = get_object_or_404(Translation, pk=translationid)
+        
+        if new_label is not None:
+            translation.label = new_label
+            translation.save()
+            return Response({'message': 'Label updated successfully'}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'Invalid label'}, status=status.HTTP_400_BAD_REQUEST)
+    

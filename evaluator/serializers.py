@@ -123,9 +123,21 @@ class TestItemWithTranslationsSerializer(serializers.ModelSerializer):
         translation_dict = {report_id: None for report_id in report_ids}
 
         for translation in translations:
-            translation_dict[translation.report.engine] = translation.sentence
+            translation_dict[translation.report.engine] = {
+                "id": translation.id,
+                "sentence": translation.sentence,
+                "label": translation.label  
+            }
 
         # Remove entries with None values
         translation_dict = {k: v for k, v in translation_dict.items() if v is not None}
 
         return translation_dict
+
+class FilteredTestItemSerializer(serializers.ModelSerializer):
+    phenomenon_name = serializers.CharField(source='phenomenon.name')
+    category_name = serializers.CharField(source='phenomenon.category.name')
+
+    class Meta:
+        model = TestItem
+        fields = ['id', 'source_sentence', 'phenomenon_name', 'category_name']

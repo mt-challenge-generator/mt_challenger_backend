@@ -11,6 +11,7 @@ TemplateWithReportViewSet,
 CompareReportsView, 
 MatchingReportsView,
 CategoryTestItemsView,
+UpdateTranslationLabelView
 )
 
 router = routers.DefaultRouter()
@@ -40,4 +41,6 @@ urlpatterns = [
     path('api/update-rules/', UpdateRulesView.as_view(), name='update-rules'),
     path('api/compare-reports/', CompareReportsView.as_view(), name='compare-reports'),
     path('api/category/<str:category>/test-items/', CategoryTestItemsView.as_view(), name='category-test-items'),
+    path('api/update-translation-label/', UpdateTranslationLabelView.as_view(), name='update-translation-label'),
+
 ]

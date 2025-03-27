@@ -171,3 +171,5 @@ REST_KNOX = {
     "USER_SERIALIZER": "accounts.serializers.UserSerializer",
     "TOKEN_TTL": timedelta(hours=48),
 }
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  
